@@ -1,3 +1,11 @@
+<!--
+ * @Author: your name
+ * @Date: 2022-04-17 00:54:11
+ * @LastEditTime: 2022-04-18 19:50:06
+ * @LastEditors: your name
+ * @Description: 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ * @FilePath: \undefinedd:\WrokSpace\Quantitative-analysis\README.md
+-->
 # Quantitative-analysis
 
 ## 利用python对国内各大券商的金工研报进行复现
@@ -30,6 +38,7 @@
 13. [基于点位效率理论的个股趋势预测研究](https://www.joinquant.com/view/community/detail/f5d05b8233169adbbf44fb7522b2bf53)
 14. [技术指标形态识别](https://www.joinquant.com/view/community/detail/1636a1cadab86dc65c65355fe431380c)
     - 复现《Foundations of Technical Analysis》
+    - 申万行业日度跟踪(Technical Pattern Recognition)
 
 **因子**
 
