@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-18 17:11:12
+LastEditTime: 2022-04-20 14:22:57
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -350,21 +350,16 @@ def get_quantile_ic(factor_frame: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(tmp)
 
 
-def get_factors_res(dichotomy_df: pd.DataFrame,
-                    factors_df: pd.DataFrame,
-                    pricing: pd.DataFrame,
-                    cat_type: Dict,
-                    show_label: Dict = None) -> Dict:
+def get_factors_res(dichotomy_df: pd.DataFrame, factors_df: pd.DataFrame,
+                    pricing: pd.DataFrame, cat_type: Dict) -> Dict:
 
     res = {}
 
-    for name, v in cat_type.items():
-        if show_label is None:
-            label = name
-        else:
-            label = show_label[name]
-        res[label] = get_factor_res2namedtuple(dichotomy_df, factors_df,
-                                               pricing, (name, v))
+    for name, dic in cat_type.items():
+
+        res[name] = get_factor_res2namedtuple(dichotomy_df, factors_df,
+                                              pricing,
+                                              tuple(dic.items())[0])
 
     return res
 
@@ -419,6 +414,54 @@ def get_factor_res2namedtuple(categories_df: pd.DataFrame,
                        quantile_info)
 
 
+CATEGORY = {
+    'roe端==0':
+    ['VolAvg_20D_240D', 'VolCV_20D', 'RealizedSkewness_240D', 'ILLIQ_20D'],
+    'roe端==1': ['Operatingprofit_FY1_R20D'],
+    '增长端==1': ['BP_LR', 'EP_Fwd12M', 'Sales2EV'],
+    '增长端==0': ['Gross_profit_margin_chg', 'Netprofit_chg']
+}
+
+
+def quadrant_dic():
+
+    dic = {
+        'cat_type == 2': ['roe端==0', '增长端==1'],
+        'cat_type == 1': ['roe端==1', '增长端==1'],
+        'cat_type == 3': ['增长端==0', 'roe端==0'],
+        'cat_type == 4': ['roe端==1', '增长端==0']
+    }
+
+    # 导入期 cat_type = 2
+    # 成长期 cat_type = 1
+    # 衰退期 cat_type = 3
+    # 成熟期 cat_type = 4
+
+    sub_dic = defaultdict(list)
+    out_put = {}
+    for label, (name, v) in zip(['导入期', '成长期', '衰退期', '成熟期'], dic.items()):
+
+        for i in v:
+
+            sub_dic[name].extend(CATEGORY[i])
+
+        out_put[label] = sub_dic
+
+    return out_put
+
+
+def dichotomy_dic():
+
+    label = ['低roe端', '高roe端', '高增长端', '低增长端']
+
+    out_put = {name: {k: v} for name, (k, v) in zip(label, CATEGORY.items())}
+
+    return out_put
+
+
+"""画图相关"""
+
+
 def plotting_dichotomy_res(res_nametuple: namedtuple):
 
     cols = 'IC Mean,mean_ret'.split(',')
@@ -429,7 +472,14 @@ def plotting_dichotomy_res(res_nametuple: namedtuple):
         '{:.2%}', subset=cols).format('{:.4f}', subset=cols1))
 
     al.utils.print_table(style_df)
-    gf = GridFigure(rows=3, cols=2, figsize=(18, 13))
+    size = style_df.shape[1]
+
+    if size % 2 == 0:
+        rows = size // 2
+    else:
+        rows = size // 2 + 1
+
+    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 4))
     for name, ser in res_nametuple.ic_info_table['mean_ret'].groupby(level=0):
 
         ser = ser.reset_index(level=0)
@@ -439,7 +489,7 @@ def plotting_dichotomy_res(res_nametuple: namedtuple):
     plt.show()
     gf.close()
 
-    gf = GridFigure(rows=3, cols=2, figsize=(18, 14))
+    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 5))
     for name, ser in res_nametuple.quantile_cum_returns.items():
 
         #ser = ser.reset_index(level=0)
