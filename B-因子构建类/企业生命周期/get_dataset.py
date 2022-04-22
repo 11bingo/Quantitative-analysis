@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 17:03:51
-LastEditTime: 2022-04-22 13:18:28
+LastEditTime: 2022-04-22 14:42:11
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -61,7 +61,7 @@ def _dump_factor():
     if os.path.exists(r'Data/quandrand_df.csv'):
 
         quandrant_df = pd.read_csv(r'Data/quandrand_df.csv',
-                                   index_col=[0, 1],
+                                   index_col=[0],
                                    parse_dates=True)
         print('开始获取因子数据...')
         factors_df = get_factors(quandrant_df)
@@ -76,7 +76,7 @@ def _dump_price():
     if os.path.exists(r'Data/quandrand_df.csv'):
 
         quandrant_df = pd.read_csv(r'Data/quandrand_df.csv',
-                                   index_col=[0, 1],
+                                   index_col=[0],
                                    parse_dates=True)
         print('开始获取收盘价数据...')
         pricing = get_pricing(quandrant_df, Last_date)

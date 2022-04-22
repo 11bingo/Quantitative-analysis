@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-22 13:26:31
+LastEditTime: 2022-04-22 15:36:15
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -299,6 +299,60 @@ def get_factors(quandrant_df: pd.DataFrame):
 
 
 """因子分析相关"""
+
+
+def add_group(factors: pd.DataFrame,
+              ind_name: Union[str, List] = None,
+              group_num: int = 5,
+              direction: Union[str, Dict] = 'ascending') -> pd.DataFrame:
+    """分组函数
+
+    Args:
+        factors (pd.DataFrame): _description_
+        ind_name (Union[str, List]): 需要分组的因子名
+        group_num (int, optional): 当为大于等于2的整数时,对股票平均分组;当为(0,0.5)之间的浮点数,
+                                   对股票分为3组,前group_num%为G01,后group_num%为G02,中间为G03. Defaults to 5.
+        direction (Union[str, Dict], optional):设置所有因子的排序方向，'ascending'表示因子值越大分数越高，'descending'表示因子值越小分数越高；
+                                                Defaults to 'ascending'.
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    if ind_name is None:
+        ind_name = factors.columns.tolist()
+
+    if isinstance(ind_name, str):
+
+        ind_name = [ind_name]
+
+    if isinstance(direction, str):
+
+        direction = [direction] * len(ind_name)
+
+        direction_dic = dict(zip(ind_name, direction))
+
+    dfs: List = []
+    for name, des in direction_dic.items():
+
+        labels = list(map(int, range(1, group_num + 1)))
+        if des == 'descending':
+            labels_dic = dict(zip(labels, labels[::-1]))
+
+        factor = factors[[name]].rename(columns={name: "factor"})
+        rank_ser: pd.Series = al.utils.quantize_factor(factor.dropna(),
+                                                       group_num,
+                                                       no_raise=True)
+        rank_ser.name = name
+        try:
+            labels_dic
+        except UnboundLocalError:
+            dfs.append(rank_ser)
+            continue
+
+        rank_ser = rank_ser.map(labels_dic)
+        dfs.append(rank_ser)
+
+    return pd.concat(dfs, axis=1)
 
 
 class get_factor_returns(object):

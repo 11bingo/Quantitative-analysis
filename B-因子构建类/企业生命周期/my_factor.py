@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:48:40
-LastEditTime: 2022-04-18 16:52:50
+LastEditTime: 2022-04-22 15:01:04
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -129,6 +129,9 @@ class quadrant(Factor):
 class VolAvg(Factor):
     '''过去 20 天日均成交量 / 过去 240 天日均成交量'''
 
+    import warnings
+    warnings.filterwarnings("ignore")
+
     volD1 = 20
     volD2 = 240
     max_window = np.max([volD1, volD2])
@@ -144,6 +147,8 @@ class VolAvg(Factor):
 
 class VolCV(Factor):
     '''过去20天日成交量的标准差 / 过去20天日均成交量'''
+    import warnings
+    warnings.filterwarnings("ignore")
 
     max_window = 20
     dependencies = ['volume']
