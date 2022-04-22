@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-20 14:22:57
+LastEditTime: 2022-04-22 13:26:31
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -26,11 +26,57 @@ import numpy as np
 import empyrical as ep
 from scipy import stats
 from collections import (namedtuple, defaultdict)
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
-plt.rcParams['font.sans-serif'] = ['SimHei']  #用来正常显示中文标签
-plt.rcParams['axes.unicode_minus'] = False  #用来正常显示负号
+__all__ = ['quadrant_dic', 'dichotomy_dic']
+"""划分象限及高低端"""
+
+CATEGORY = {
+    'roe端==0':
+    ['VolAvg_20D_240D', 'VolCV_20D', 'RealizedSkewness_240D', 'ILLIQ_20D'],
+    'roe端==1': ['Operatingprofit_FY1_R20D'],
+    '增长端==1': ['BP_LR', 'EP_Fwd12M', 'Sales2EV'],
+    '增长端==0': ['Gross_profit_margin_chg', 'Netprofit_chg']
+}
+
+
+def quadrant_dic():
+
+    dic = {
+        'cat_type == 2': ['roe端==0', '增长端==1'],
+        'cat_type == 1': ['roe端==1', '增长端==1'],
+        'cat_type == 3': ['增长端==0', 'roe端==0'],
+        'cat_type == 4': ['roe端==1', '增长端==0']
+    }
+
+    # 导入期 cat_type = 2
+    # 成长期 cat_type = 1
+    # 衰退期 cat_type = 3
+    # 成熟期 cat_type = 4
+
+    sub_dic = defaultdict(list)
+    out_put = {}
+    for label, (name, v) in zip(['导入期', '成长期', '衰退期', '成熟期'], dic.items()):
+
+        for i in v:
+
+            sub_dic[name].extend(CATEGORY[i])
+
+        out_put[label] = sub_dic
+
+    return out_put
+
+
+def dichotomy_dic():
+
+    label = ['低roe端', '高roe端', '高增长端', '低增长端']
+
+    out_put = {name: {k: v} for name, (k, v) in zip(label, CATEGORY.items())}
+
+    return out_put
+
+
+quadrant_dic()
+dichotomy_dic()
 """划分象限"""
 
 
@@ -412,126 +458,3 @@ def get_factor_res2namedtuple(categories_df: pd.DataFrame,
 
     return factors_res(factor_data, quantile_returns, quantile_cum_returns,
                        quantile_info)
-
-
-CATEGORY = {
-    'roe端==0':
-    ['VolAvg_20D_240D', 'VolCV_20D', 'RealizedSkewness_240D', 'ILLIQ_20D'],
-    'roe端==1': ['Operatingprofit_FY1_R20D'],
-    '增长端==1': ['BP_LR', 'EP_Fwd12M', 'Sales2EV'],
-    '增长端==0': ['Gross_profit_margin_chg', 'Netprofit_chg']
-}
-
-
-def quadrant_dic():
-
-    dic = {
-        'cat_type == 2': ['roe端==0', '增长端==1'],
-        'cat_type == 1': ['roe端==1', '增长端==1'],
-        'cat_type == 3': ['增长端==0', 'roe端==0'],
-        'cat_type == 4': ['roe端==1', '增长端==0']
-    }
-
-    # 导入期 cat_type = 2
-    # 成长期 cat_type = 1
-    # 衰退期 cat_type = 3
-    # 成熟期 cat_type = 4
-
-    sub_dic = defaultdict(list)
-    out_put = {}
-    for label, (name, v) in zip(['导入期', '成长期', '衰退期', '成熟期'], dic.items()):
-
-        for i in v:
-
-            sub_dic[name].extend(CATEGORY[i])
-
-        out_put[label] = sub_dic
-
-    return out_put
-
-
-def dichotomy_dic():
-
-    label = ['低roe端', '高roe端', '高增长端', '低增长端']
-
-    out_put = {name: {k: v} for name, (k, v) in zip(label, CATEGORY.items())}
-
-    return out_put
-
-
-"""画图相关"""
-
-
-def plotting_dichotomy_res(res_nametuple: namedtuple):
-
-    cols = 'IC Mean,mean_ret'.split(',')
-    cols1 = 'IC Std.,Risk-Adjusted IC,t-stat(IC),p-value(IC),IC Skew,IC Kurtosis'.split(
-        ',')
-
-    style_df = (res_nametuple.ic_info_table.style.format(
-        '{:.2%}', subset=cols).format('{:.4f}', subset=cols1))
-
-    al.utils.print_table(style_df)
-    size = style_df.shape[1]
-
-    if size % 2 == 0:
-        rows = size // 2
-    else:
-        rows = size // 2 + 1
-
-    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 4))
-    for name, ser in res_nametuple.ic_info_table['mean_ret'].groupby(level=0):
-
-        ser = ser.reset_index(level=0)
-
-        ser.plot.bar(ax=gf.next_cell(), title=name)
-
-    plt.show()
-    gf.close()
-
-    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 5))
-    for name, ser in res_nametuple.quantile_cum_returns.items():
-
-        #ser = ser.reset_index(level=0)
-
-        ser.plot(ax=gf.next_cell(), title=name)
-    plt.show()
-    gf.close()
-
-
-class GridFigure(object):
-    """
-    It makes life easier with grid plots
-    """
-    def __init__(self, rows, cols, figsize: Tuple = None):
-        self.rows = rows
-        self.cols = cols
-        if figsize is None:
-            size = (14, rows * 7)
-            self.fig = plt.figure(figsize=size)
-        else:
-            self.fig = plt.figure(figsize=figsize)
-        self.gs = gridspec.GridSpec(rows, cols, wspace=0.4, hspace=0.3)
-        self.curr_row = 0
-        self.curr_col = 0
-
-    def next_row(self):
-        if self.curr_col != 0:
-            self.curr_row += 1
-            self.curr_col = 0
-        subplt = plt.subplot(self.gs[self.curr_row, :])
-        self.curr_row += 1
-        return subplt
-
-    def next_cell(self):
-        if self.curr_col >= self.cols:
-            self.curr_row += 1
-            self.curr_col = 0
-        subplt = plt.subplot(self.gs[self.curr_row, self.curr_col])
-        self.curr_col += 1
-        return subplt
-
-    def close(self):
-        plt.close(self.fig)
-        self.fig = None
-        self.gs = None
