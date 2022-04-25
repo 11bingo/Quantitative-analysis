@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 16:22:02
+LastEditTime: 2022-04-25 16:32:18
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -181,13 +181,12 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
     Args:
         factors_df (pd.DataFrame): 因子分值
         pricing (pd.DataFrame): 价格 index-date columns-codes
-        
+        categories_df(pd.DataFrame):MultiIndex level0-date level1-asset columns-分类情况
         categories_dic (Dict):
-            1. categories_df(pd.DataFrame):MultiIndex level0-date level1-asset columns-分类情况
-            2. cat_tuple (Tuple): 0-分类筛选表达 1-因子组
-            3. ind_name同add_group
-            4. group_num同add_group
-            5. direction同add_group
+            1. cat_tuple (Tuple): 0-分类筛选表达 1-因子组
+            2. ind_name同add_group
+            3. group_num同add_group
+            4. direction同add_group
 
     Returns:
         namedtuple
@@ -197,7 +196,6 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
 
     # 从categories_dic获取参数
     cat_tuple = categories_dic['cat_tuple']
-    categories_df = categories_dic['categories_df']
     ind_name = categories_dic.get('ind_name', None)
     direction = categories_dic.get('direction', 'ascending')
     group_num = categories_dic.get('group_num', None)
@@ -219,10 +217,10 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
 
     ic_info_table = ic_df.groupby(level='factor_name').apply(
         lambda x: get_information_table(x.dropna()).T)
-    
+
     ic_info_table['mean_ret'] = afr.group_returns.groupby(
         level='factor_name').mean().stack()
-    
+
     quantile_returns = afr.group_returns
     quantile_cum_returns = afr.group_cum_returns
 

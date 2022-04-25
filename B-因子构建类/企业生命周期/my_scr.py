@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-25 16:05:17
+LastEditTime: 2022-04-25 16:35:12
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -25,7 +25,7 @@ import pandas as pd
 import numpy as np
 import empyrical as ep
 from scipy import stats
-from collections import (namedtuple, defaultdict)
+from collections import defaultdict
 
 __all__ = ['quadrant_dic', 'dichotomy_dic']
 """划分象限及高低端"""
@@ -39,7 +39,7 @@ CATEGORY = {
 }
 
 
-def quadrant_dic():
+def _get_quadrant_dic():
 
     dic = {
         'cat_type == 2': ['roe端==0', '增长端==1'],
@@ -57,26 +57,27 @@ def quadrant_dic():
     out_put = {}
     for label, (name, v) in zip(['导入期', '成长期', '衰退期', '成熟期'], dic.items()):
 
+        factor_set = set()
         for i in v:
 
-            sub_dic[name].extend(CATEGORY[i])
+            factor_set |= set(CATEGORY[i])
 
-        out_put[label] = sub_dic
+        out_put[label] = (name, list(factor_set))
 
     return out_put
 
 
-def dichotomy_dic():
+def _get_dichotomy_dic():
 
     label = ['低roe端', '高roe端', '高增长端', '低增长端']
 
-    out_put = {name: {k: v} for name, (k, v) in zip(label, CATEGORY.items())}
+    out_put = {name: (k, v) for name, (k, v) in zip(label, CATEGORY.items())}
 
     return out_put
 
 
-quadrant_dic()
-dichotomy_dic()
+quadrant_dic = _get_quadrant_dic()
+dichotomy_dic = _get_dichotomy_dic()
 """划分象限"""
 
 
