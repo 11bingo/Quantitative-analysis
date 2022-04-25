@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 17:03:51
-LastEditTime: 2022-04-25 20:19:23
+LastEditTime: 2022-04-25 21:46:55
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -25,7 +25,7 @@ End = '2022-02-28'
 Last_date = '2022-03-31'
 
 
-def get_data(start:str=Begin,end:str=End,last_date=Last_date,method:Union[str,List]='ALL'):
+def get_data(method:Union[str,List]='ALL',start:str=Begin,end:str=End,last_date:str=Last_date):
 
     dic = {
         'dichotomy': _dump_dichotomy,
@@ -38,17 +38,19 @@ def get_data(start:str=Begin,end:str=End,last_date=Last_date,method:Union[str,Li
         
         for m in method:
 
-            dic[m.upper()](start,end,last_date)
+            dic[m](start=start,end=end,last_date=last_date)
         
+        return 
+    
     if method.upper() == 'ALL':
 
         for func in dic.values():
 
-            func(start,end)
+            func(start=start,end=end,last_date=last_date)
 
     else:
 
-        dic[method]()
+        dic[method](start=start,end=end,last_date=last_date)
 
 
 def _dump_dichotomy(start:str=Begin,end:str=End,**kw):
