@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-25 16:35:12
+LastEditTime: 2022-04-25 20:24:46
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -27,6 +27,9 @@ import empyrical as ep
 from scipy import stats
 from collections import defaultdict
 
+import warnings
+warnings.filterwarnings("ignore")
+    
 __all__ = ['quadrant_dic', 'dichotomy_dic']
 """划分象限及高低端"""
 
