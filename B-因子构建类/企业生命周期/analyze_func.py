@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 16:54:35
+LastEditTime: 2022-04-25 22:56:20
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -110,11 +110,12 @@ class analyze_factor_res(object):
 
         # 分组收益
         self.group_returns = get_group_return(group_factor)
-
+        self.group_returns.columns.name = '分组'
         # 分组累计收益
         self.group_cum_returns = self.group_returns.groupby(
             level='factor_name').transform(lambda x: ep.cum_returns(x))
 
+        
     def calc_ic(self) -> pd.DataFrame:
 
         ic_frame = calc_group_ic(self.factors, self.group_factor)
