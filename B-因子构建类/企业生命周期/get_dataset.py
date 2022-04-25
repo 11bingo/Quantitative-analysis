@@ -1,17 +1,24 @@
 '''
 Author: Hugo
 Date: 2022-04-18 17:03:51
-LastEditTime: 2022-04-22 14:42:11
+LastEditTime: 2022-04-25 11:16:20
 LastEditors: Please set LastEditors
 Description: 
 '''
 import os
-from typing import (List, Tuple, Dict, Callable, Union)
+import sys
 
+sys.path.append('/home/jquser/')
+from typing import (List, Tuple, Dict, Callable, Union)
+from jqdata import *
 import pandas as pd
 import numpy as np
 
-from my_src import (get_dichotomy, get_quadrant, get_factors, get_pricing)
+import warnings
+
+warnings.filterwarnings("ignore")
+
+from my_scr import (get_dichotomy, get_quadrant, get_factors, get_pricing)
 
 Begin = '2013-01-01'
 End = '2022-02-28'
@@ -44,7 +51,7 @@ def _dump_dichotomy():
     # 划分高低端象限
     print('开始划分高低端象限...')
     dichotomy_df = get_dichotomy(Begin, End)
-    dichotomy_df.to_csv(r'Data\dichotomy.csv')
+    dichotomy_df.to_csv(r'Data/dichotomy.csv')
     print('高低端象限数据获取完毕!')
 
 
@@ -52,46 +59,45 @@ def _dump_quadrant():
     # 划分四象限
     print('开始划分四象限...')
     quandrant_df = get_quadrant(Begin, End)
-    quandrant_df.to_csv(r'Data\quandrant_slop.csv')
+    quandrant_df.to_csv(r'Data/quandrant_df.csv')
     print('四象限数据获取完毕!')
 
 
 def _dump_factor():
 
-    if os.path.exists(r'Data/quandrand_df.csv'):
+    if os.path.exists(r'Data/quandrant_df.csv'):
 
-        quandrant_df = pd.read_csv(r'Data/quandrand_df.csv',
+        quandrant_df = pd.read_csv(r'Data/quandrant_df.csv',
                                    index_col=[0],
                                    parse_dates=True)
         print('开始获取因子数据...')
         factors_df = get_factors(quandrant_df)
-        factors_df.to_csv(r'Data\factors_frame.csv')
+        factors_df.to_csv(r'Data/factors_frame.csv')
         print('因子数据获取完毕!')
     else:
-        print('缺少依赖数据:quandrand_df.csv,请先行下载quandrand_df.csv!')
+        print('缺少依赖数据:quandrant_df.csv,请先行下载quandrant_df.csv!')
 
 
 def _dump_price():
 
     if os.path.exists(r'Data/quandrand_df.csv'):
 
-        quandrant_df = pd.read_csv(r'Data/quandrand_df.csv',
+        quandrant_df = pd.read_csv(r'Data/quandrant_df.csv',
                                    index_col=[0],
                                    parse_dates=True)
         print('开始获取收盘价数据...')
         pricing = get_pricing(quandrant_df, Last_date)
-        pricing.to_csv('Data\pricing.csv')
+        pricing.to_csv(r'Data/pricing.csv')
         print('收盘价数据获取完毕!')
 
     else:
-        print('缺少依赖数据:quandrand_df.csv,请先行下载quandrand_df.csv!')
+        print('缺少依赖数据:quandrant_df.csv,请先行下载quandrant_df.csv!')
 
 
 def load_data() -> List:
 
     files = [
-        'dichotomy.csv', 'quandrant_slop.csv', 'factors_frame.csv',
-        'pricing.csv'
+        'dichotomy.csv', 'quandrant_df.csv', 'factors_frame.csv', 'pricing.csv'
     ]
 
     out_put = []
@@ -102,14 +108,14 @@ def load_data() -> List:
 
         if os.path.exists(file_path):
 
-            if file in ['dichotomy.csv', 'factors_frame']:
+            if file in ['dichotomy.csv', 'factors_frame.csv']:
                 df = pd.read_csv(file_path, index_col=[0, 1], parse_dates=True)
                 df.index.names = ['date', 'asset']
                 out_put.append(df)
             else:
                 df = pd.read_csv(file_path, index_col=[0], parse_dates=True)
                 df.index.names = ['date']
-
+                out_put.append(df)
             print('%s文件读取完毕!' % file)
 
         else:
