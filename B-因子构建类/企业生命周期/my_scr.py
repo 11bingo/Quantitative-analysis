@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-25 22:36:15
+LastEditTime: 2022-04-25 22:37:31
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -409,14 +409,10 @@ def add_group(factors: pd.DataFrame,
 
         direction = [direction] * len(ind_name)
 
-        direction_dic = dict(zip(ind_name, direction))
+        direction = dict(zip(ind_name, direction))
     
-    if isinstance(direction, dict):
-
-        direction_dic = direction
-        
     dfs: List = []
-    for name, des in direction_dic.items():
+    for name, des in direction.items():
 
         labels = list(map(int, range(1, group_num + 1)))
         # 当降序时 扭转labels
