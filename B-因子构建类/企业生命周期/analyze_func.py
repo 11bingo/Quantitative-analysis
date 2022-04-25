@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 16:05:39
+LastEditTime: 2022-04-25 16:22:02
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -217,8 +217,12 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
     # 计算ic
     ic_df = afr.calc_ic()
 
-    ic_info_table = ic_df.groupby(
-        level='factor_name').apply(lambda x: get_information_table(x.dropna()))
+    ic_info_table = ic_df.groupby(level='factor_name').apply(
+        lambda x: get_information_table(x.dropna()).T)
+    
+    ic_info_table['mean_ret'] = afr.group_returns.groupby(
+        level='factor_name').mean().stack()
+    
     quantile_returns = afr.group_returns
     quantile_cum_returns = afr.group_cum_returns
 
