@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-22 15:36:15
+LastEditTime: 2022-04-25 16:05:17
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -298,7 +298,83 @@ def get_factors(quandrant_df: pd.DataFrame):
     return factor_df
 
 
-"""因子分析相关"""
+"""构建因子分析相关数据"""
+
+
+def get_factor_columns(columns: pd.Index) -> List:
+    """获取因子名称
+
+    Args:
+        columns (pd.Index): _description_
+
+    Returns:
+        List: _description_
+    """
+    return [col for col in columns if col not in ['next_return', 'next_ret']]
+
+
+def calc_group_ic(factor_data: pd.DataFrame,
+                  group_data: pd.DataFrame) -> pd.DataFrame:
+    """计算分组IC
+
+    Args:
+        factor_data (pd.DataFrame): MultiIndex level-0 date level-1 code columns
+        group_data (pd.DataFrame): MultiIndex level-0 date level-1 code columns
+        两表要对齐
+    Returns:
+        pd.DataFrame: _description_
+    """
+    def src_ic(group):
+
+        group = group.dropna()
+
+        f = group['next_ret']
+
+        _ic = stats.spearmanr(group[factor_name], f)[0]
+
+        return _ic
+
+    cols = get_factor_columns(group_data.columns)
+    dic = defaultdict(pd.DataFrame)
+    for factor_name, group_ser in group_data[cols].items():
+
+        for group_num, ser in group_ser.groupby(group_ser):
+
+            idx = ser.index
+            ic_ser = factor_data.loc[idx].groupby(level='date').apply(src_ic)
+
+            dic[factor_name][group_num] = ic_ser
+
+    ic_frame = pd.concat(dic)
+    ic_frame.index.names = ['factor_name', 'date']
+    return ic_frame
+
+
+def get_group_return(df: pd.DataFrame, cols: List = None) -> pd.DataFrame:
+    """计算分组收益率
+
+    Args:
+        df (pd.DataFrame): MultiIndex level0-date level1-code
+        cols (List, optional): 需要计算的因子. Defaults to None.
+
+    Returns:
+        pd.DataFrame
+    """
+    if cols is None:
+        cols = get_factor_columns(df)
+
+    dic = defaultdict(pd.DataFrame)
+    for col in cols:
+
+        dic[col] = pd.pivot_table(df.reset_index(level=0),
+                                  index='date',
+                                  columns=col,
+                                  values='next_ret')
+
+    rets = pd.concat(dic)
+    rets.index.names = ['factor_name', 'date']
+
+    return rets
 
 
 def add_group(factors: pd.DataFrame,
@@ -335,6 +411,7 @@ def add_group(factors: pd.DataFrame,
     for name, des in direction_dic.items():
 
         labels = list(map(int, range(1, group_num + 1)))
+        # 当降序时 扭转labels
         if des == 'descending':
             labels_dic = dict(zip(labels, labels[::-1]))
 
@@ -353,58 +430,6 @@ def add_group(factors: pd.DataFrame,
         dfs.append(rank_ser)
 
     return pd.concat(dfs, axis=1)
-
-
-class get_factor_returns(object):
-    def __init__(self, factors: pd.Series, max_loss: float) -> None:
-        '''
-        输入:factors MuliIndex level0-date level1-asset columns-factors
-        '''
-        self.factors = factors
-        self.factor_name = factors.name
-        self.name = self.factor_name
-        self.max_loss = max_loss
-
-    def get_calc(self,
-                 pricing: pd.DataFrame,
-                 periods: Tuple = (1, ),
-                 quantiles: int = 5) -> pd.DataFrame:
-
-        preprocessing_factor = al.utils.get_clean_factor_and_forward_returns(
-            self.factors,
-            pricing,
-            periods=periods,
-            quantiles=quantiles,
-            max_loss=self.max_loss)
-
-        # 预处理好的因子
-        self.factors_frame = preprocessing_factor
-
-        # 分组收益
-        self.group_returns = pd.pivot_table(preprocessing_factor.reset_index(),
-                                            index='date',
-                                            columns='factor_quantile',
-                                            values=1)
-
-        # 分组累计收益
-        self.group_cum_returns = ep.cum_returns(self.group_returns)
-
-    def long_short(self, lower: int = 1, upper: int = 5) -> pd.Series:
-        '''
-        获取多空收益
-        默认地分组为1,高分组为5
-        '''
-        try:
-            self.group_returns
-        except NameError:
-            raise ValueError('请先执行get_calc')
-
-        self.long_short_returns = self.group_returns[upper] - \
-            self.group_returns[lower]
-        self.long_short_returns.name = f'{self.name}_excess_ret'
-
-        self.long_short_cum = ep.cum_returns(self.long_short_returns)
-        self.long_short_cum.name = f'{self.name}_excess_cum'
 
 
 def get_information_table(ic_data: pd.DataFrame) -> pd.DataFrame:
@@ -429,86 +454,22 @@ def get_information_table(ic_data: pd.DataFrame) -> pd.DataFrame:
     return ic_summary_table
 
 
-def get_quantile_ic(factor_frame: pd.DataFrame) -> pd.DataFrame:
-    """获取分组IC相关信息
+# def get_quantile_ic(factor_frame: pd.DataFrame) -> pd.DataFrame:
+#     """获取分组IC相关信息
 
-    Args:
-        factor_frame (pd.DataFrame): MultiIndex level0-date level1-asset 
+#     Args:
+#         factor_frame (pd.DataFrame): MultiIndex level0-date level1-asset
 
-    Returns:
-        pd.DataFrame
-    """
-    tmp = []
-    for num, df in factor_frame.groupby('factor_quantile'):
+#     Returns:
+#         pd.DataFrame
+#     """
+#     tmp = []
+#     for num, df in factor_frame.groupby('factor_quantile'):
 
-        ic = al.performance.factor_information_coefficient(df, False)
-        ic_info = get_information_table(ic)
-        #ic_info = ic_info.T
-        ic_info.index = [num]
-        tmp.append(ic_info)
+#         ic = al.performance.factor_information_coefficient(df, False)
+#         ic_info = get_information_table(ic)
+#         #ic_info = ic_info.T
+#         ic_info.index = [num]
+#         tmp.append(ic_info)
 
-    return pd.concat(tmp)
-
-
-def get_factors_res(dichotomy_df: pd.DataFrame, factors_df: pd.DataFrame,
-                    pricing: pd.DataFrame, cat_type: Dict) -> Dict:
-
-    res = {}
-
-    for name, dic in cat_type.items():
-
-        res[name] = get_factor_res2namedtuple(dichotomy_df, factors_df,
-                                              pricing,
-                                              tuple(dic.items())[0])
-
-    return res
-
-
-def get_factor_res2namedtuple(categories_df: pd.DataFrame,
-                              factors_df: pd.DataFrame, pricing: pd.DataFrame,
-                              cat_tuple: Tuple) -> namedtuple:
-    """计算每个象限的因子收益情况
-
-    Args:
-        categories_df (pd.DataFrame): MultiIndex level0-date level1-asset columns-分类情况
-        factors_df (pd.DataFrame): 因子分值
-        pricing (pd.DataFrame): 价格 index-date columns-codes
-        cat_tuple (Tuple): 0-分类筛选表达 1-因子组
-
-    Returns:
-        namedtuple
-    """
-    factors_res = namedtuple(
-        'factor_res',
-        'factor_data,quantile_returns,quantile_cum_returns,ic_info_table')
-    k = cat_tuple[0]
-    factor_cols = list(cat_tuple[1])
-    sel_idx = categories_df.query(k).index
-
-    test_factor = factors_df.loc[sel_idx, factor_cols]
-    test_factor['复合因子'] = test_factor.mean(axis=1)
-    factor_data = {}
-    quantile_returns = {}
-    quantile_cum_returns = {}
-    info_dic = {}
-
-    for name, ser in test_factor.items():
-
-        gfr = get_factor_returns(ser.dropna(), 0.25)
-        gfr.get_calc(pricing)
-
-        ic_info = get_quantile_ic(gfr.factors_frame)
-        cols = al.utils.get_forward_returns_columns(gfr.factors_frame.columns)
-        quantile_mean_ret = gfr.factors_frame.groupby(
-            'factor_quantile')[cols].mean()
-        ic_info['mean_ret'] = quantile_mean_ret
-        info_dic[name] = ic_info
-
-        factor_data[name] = gfr.factors_frame
-        quantile_returns[name] = gfr.group_returns
-        quantile_cum_returns[name] = gfr.group_cum_returns
-
-    quantile_info = pd.concat(info_dic)
-
-    return factors_res(factor_data, quantile_returns, quantile_cum_returns,
-                       quantile_info)
+#     return pd.concat(tmp)

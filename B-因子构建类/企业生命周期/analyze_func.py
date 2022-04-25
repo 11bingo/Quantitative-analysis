@@ -1,92 +1,325 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 11:13:31
+LastEditTime: 2022-04-25 16:05:39
 LastEditors: Please set LastEditors
 Description: 
 '''
+import functools
+import alphalens as al
+import pandas as pd
+import empyrical as ep
+
+from my_scr import (calc_group_ic, add_group, get_group_return,
+                    get_information_table)
+
 from typing import (List, Tuple, Dict, Callable, Union)
 from collections import namedtuple
-from alphalens.utils import print_table
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 
-plt.rcParams['font.sans-serif'] = ['SimHei']  #用来正常显示中文标签
-plt.rcParams['axes.unicode_minus'] = False  #用来正常显示负号
-"""画图相关"""
+# class get_factor_returns(object):
+#     def __init__(self, factors: pd.Series, max_loss: float) -> None:
+#         '''
+#         输入:factors MuliIndex level0-date level1-asset columns-factors
+#         '''
+#         self.factors = factors
+#         self.factor_name = factors.name
+#         self.name = self.factor_name
+#         self.max_loss = max_loss
+
+#     def get_calc(self,
+#                  pricing: pd.DataFrame,
+#                  periods: Tuple = (1, ),
+#                  quantiles: int = 5) -> pd.DataFrame:
+
+#         preprocessing_factor = al.utils.get_clean_factor_and_forward_returns(
+#             self.factors,
+#             pricing,
+#             periods=periods,
+#             quantiles=quantiles,
+#             max_loss=self.max_loss)
+
+#         # 预处理好的因子
+#         self.factors_frame = preprocessing_factor
+
+#         # 分组收益
+#         self.group_returns = pd.pivot_table(preprocessing_factor.reset_index(),
+#                                             index='date',
+#                                             columns='factor_quantile',
+#                                             values=1)
+
+#         # 分组累计收益
+#         self.group_cum_returns = ep.cum_returns(self.group_returns)
+
+#     def long_short(self, lower: int = 1, upper: int = 5) -> pd.Series:
+#         '''
+#         获取多空收益
+#         默认地分组为1,高分组为5
+#         '''
+#         try:
+#             self.group_returns
+#         except NameError:
+#             raise ValueError('请先执行get_calc')
+
+#         self.long_short_returns = self.group_returns[upper] - \
+#             self.group_returns[lower]
+#         self.long_short_returns.name = f'{self.name}_excess_ret'
+
+#         self.long_short_cum = ep.cum_returns(self.long_short_returns)
+#         self.long_short_cum.name = f'{self.name}_excess_cum'
 
 
-def plotting_dichotomy_res(res_nametuple: namedtuple):
+class analyze_factor_res(object):
+    def __init__(self,
+                 factors: pd.DataFrame,
+                 ind_name: Union[str, List] = None,
+                 direction: Union[str, Dict] = 'ascending') -> None:
+        '''
+        输入:factors MuliIndex level0-date level1-asset columns-factors
+        ind_name (Union[str, List]): 需要分组的因子名
+        direction (Union[str, Dict], optional):设置所有因子的排序方向，'ascending'表示因子值越大分数越高，
+        'descending'表示因子值越小分数越;Defaults to 'ascending'.
+        '''
+        self.factors = factors.copy()
+        self.ind_name = ind_name
+        self.direction = direction
 
-    cols = 'IC Mean,mean_ret'.split(',')
-    cols1 = 'IC Std.,Risk-Adjusted IC,t-stat(IC),p-value(IC),IC Skew,IC Kurtosis'.split(
-        ',')
+    def get_calc(self,
+                 pricing: pd.DataFrame,
+                 quantiles: int = 5) -> pd.DataFrame:
+        """数据准备
 
-    ic_frame = res_nametuple.ic_info_table
-    style_df = (ic_frame.style.format('{:.2%}',
-                                      subset=cols).format('{:.4f}',
-                                                          subset=cols1))
+        Args:
+            pricing (pd.DataFrame): index-date columns-code value-close
+            quantiles (int, optional): group_num (int, optional): 当为大于等于2的整数时,对股票平均分组;当为(0,0.5)之间的浮点数,
+                                对股票分为3组,前group_num%为G01,后group_num%为G02,中间为G03. Defaults to 5.
+        """
+        next_returns: pd.DataFrame = al.utils.compute_forward_returns(
+            pricing, (1, ))
 
-    print_table(style_df)
-    size = ic_frame.shape[1]
+        # 分组
+        group_factor = add_group(self.factors,
+                                 ind_name=self.ind_name,
+                                 group_num=quantiles,
+                                 direction=self.direction)
 
-    if size % 2 == 0:
-        rows = size // 2
-    else:
-        rows = size // 2 + 1
+        group_factor['next_ret'] = next_returns[1]
+        self.factors['next_ret'] = next_returns[1]
 
-    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 4))
-    for name, ser in res_nametuple.ic_info_table['mean_ret'].groupby(level=0):
+        # 因子分组
+        self.group_factor = group_factor
 
-        ser = ser.reset_index(level=0)
+        # 分组收益
+        self.group_returns = get_group_return(group_factor)
 
-        ser.plot.bar(ax=gf.next_cell(), title=name)
+        # 分组累计收益
+        self.group_cum_returns = self.group_returns.groupby(
+            level='factor_name').transform(lambda x: ep.cum_returns(x))
 
-    plt.show()
-    gf.close()
+    def calc_ic(self) -> pd.DataFrame:
 
-    gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 5))
-    for name, ser in res_nametuple.quantile_cum_returns.items():
-
-        ser.plot(ax=gf.next_cell(), title=name)
-
-    plt.show()
-    gf.close()
+        ic_frame = calc_group_ic(self.factors, self.group_factor)
 
 
-class GridFigure(object):
+"""生成结果"""
+
+# def get_factors_res(dichotomy_df: pd.DataFrame, factors_df: pd.DataFrame,
+#                     pricing: pd.DataFrame, cat_type: Dict) -> Dict:
+
+#     res = {}
+
+#     for name, dic in cat_type.items():
+
+#         res[name] = get_factor_res2namedtuple(dichotomy_df, factors_df,
+#                                               pricing,
+#                                               tuple(dic.items())[0])
+
+#     return res
+
+
+def get_factor_res(dichotomy: pd.DataFrame, factors: pd.DataFrame,
+                   pricing: pd.DataFrame, cat_type: Dict, **kws) -> Dict:
+    """获取因子分析报告
+
+    Args:
+        dichotomy (pd.DataFrame): 象限区分表 MultiIndex level0-date level1-code
+        factors (pd.DataFrame): 因子 MultiIndex level0-date level1-code
+        pricing (pd.DataFrame): 价格数据 index-date columns-code values-price
+        cat_type (Dict): k-label v- 0-查询 1-选择的因子
+
+    Returns:
+        Dict: _description_
     """
-    It makes life easier with grid plots
+    res = {}
+
+    ind_name = kws.get('ind_name', None)
+    direction = kws.get('direction', 'ascending')
+    group_num = kws.get('group_num', 5)
+
+    func = functools.partial(get_factor_res2namedtuple,
+                             factor_df=factors,
+                             pricing=pricing,
+                             categories_df=dichotomy)
+
+    for name, v in cat_type.items():
+
+        res[name] = func(
+            categories_dic={
+                'cat_tuple': v,
+                'ind_name': ind_name,
+                'direction': direction,
+                'group_num': group_num
+            })
+
+    return res
+
+
+def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
+                              categories_df: pd.DataFrame,
+                              categories_dic: Dict) -> namedtuple:
+    """计算每个象限的因子收益情况
+
+    Args:
+        factors_df (pd.DataFrame): 因子分值
+        pricing (pd.DataFrame): 价格 index-date columns-codes
+        
+        categories_dic (Dict):
+            1. categories_df(pd.DataFrame):MultiIndex level0-date level1-asset columns-分类情况
+            2. cat_tuple (Tuple): 0-分类筛选表达 1-因子组
+            3. ind_name同add_group
+            4. group_num同add_group
+            5. direction同add_group
+
+    Returns:
+        namedtuple
     """
-    def __init__(self, rows, cols, figsize: Tuple = None):
-        self.rows = rows
-        self.cols = cols
-        if figsize is None:
-            size = (14, rows * 7)
-            self.fig = plt.figure(figsize=size)
-        else:
-            self.fig = plt.figure(figsize=figsize)
-        self.gs = gridspec.GridSpec(rows, cols, wspace=0.4, hspace=0.3)
-        self.curr_row = 0
-        self.curr_col = 0
+    factors_res = namedtuple(
+        'factor_res', 'quantile_returns,quantile_cum_returns,ic_info_table')
 
-    def next_row(self):
-        if self.curr_col != 0:
-            self.curr_row += 1
-            self.curr_col = 0
-        subplt = plt.subplot(self.gs[self.curr_row, :])
-        self.curr_row += 1
-        return subplt
+    # 从categories_dic获取参数
+    cat_tuple = categories_dic['cat_tuple']
+    categories_df = categories_dic['categories_df']
+    ind_name = categories_dic.get('ind_name', None)
+    direction = categories_dic.get('direction', 'ascending')
+    group_num = categories_dic.get('group_num', None)
 
-    def next_cell(self):
-        if self.curr_col >= self.cols:
-            self.curr_row += 1
-            self.curr_col = 0
-        subplt = plt.subplot(self.gs[self.curr_row, self.curr_col])
-        self.curr_col += 1
-        return subplt
+    # 获取查询及所需因子名称
+    q, factor_cols = cat_tuple
 
-    def close(self):
-        plt.close(self.fig)
-        self.fig = None
-        self.gs = None
+    sel_idx = categories_df.query(q).index
+    test_factor = factor_df.loc[sel_idx, factor_cols]
+    if len(factor_cols) > 1:
+        test_factor['复合因子'] = test_factor.mean(axis=1)
+
+    afr = analyze_factor_res(test_factor,
+                             ind_name=ind_name,
+                             direction=direction)
+    afr.get_calc(pricing, group_num)
+    # 计算ic
+    ic_df = afr.calc_ic()
+
+    ic_info_table = ic_df.groupby(
+        level='factor_name').apply(lambda x: get_information_table(x.dropna()))
+    quantile_returns = afr.group_returns
+    quantile_cum_returns = afr.group_cum_returns
+
+    return factors_res(quantile_returns, quantile_cum_returns, ic_info_table)
+
+
+# def get_factor_res2namedtuple(categories_df: pd.DataFrame,
+#                               factors_df: pd.DataFrame, pricing: pd.DataFrame,
+#                               cat_tuple: Tuple) -> namedtuple:
+#     """计算每个象限的因子收益情况
+
+#     Args:
+#         categories_df (pd.DataFrame): MultiIndex level0-date level1-asset columns-分类情况
+#         factors_df (pd.DataFrame): 因子分值
+#         pricing (pd.DataFrame): 价格 index-date columns-codes
+#         cat_tuple (Tuple): 0-分类筛选表达 1-因子组
+
+#     Returns:
+#         namedtuple
+#     """
+#     factors_res = namedtuple(
+#         'factor_res',
+#         'factor_data,quantile_returns,quantile_cum_returns,ic_info_table')
+#     k = cat_tuple[0]
+#     factor_cols = list(cat_tuple[1])
+#     sel_idx = categories_df.query(k).index
+
+#     test_factor = factors_df.loc[sel_idx, factor_cols]
+#     test_factor['复合因子'] = test_factor.mean(axis=1)
+#     factor_data = {}
+#     quantile_returns = {}
+#     quantile_cum_returns = {}
+#     info_dic = {}
+
+#     for name, ser in test_factor.items():
+
+#         gfr = get_factor_returns(ser.dropna(), 0.25)
+#         gfr.get_calc(pricing)
+
+#         ic_info = get_quantile_ic(gfr.factors_frame)
+#         cols = al.utils.get_forward_returns_columns(gfr.factors_frame.columns)
+#         quantile_mean_ret = gfr.factors_frame.groupby(
+#             'factor_quantile')[cols].mean()
+#         ic_info['mean_ret'] = quantile_mean_ret
+#         info_dic[name] = ic_info
+
+#         factor_data[name] = gfr.factors_frame
+#         quantile_returns[name] = gfr.group_returns
+#         quantile_cum_returns[name] = gfr.group_cum_returns
+
+#     quantile_info = pd.concat(info_dic)
+
+#     return factors_res(factor_data, quantile_returns, quantile_cum_returns,
+#                        quantile_info)
+
+# def get_factor_res2namedtuple(categories_df: pd.DataFrame,
+#                               factors_df: pd.DataFrame, pricing: pd.DataFrame,
+#                               cat_tuple: Tuple) -> namedtuple:
+#     """计算每个象限的因子收益情况
+
+#     Args:
+#         categories_df (pd.DataFrame): MultiIndex level0-date level1-asset columns-分类情况
+#         factors_df (pd.DataFrame): 因子分值
+#         pricing (pd.DataFrame): 价格 index-date columns-codes
+#         cat_tuple (Tuple): 0-分类筛选表达 1-因子组
+
+#     Returns:
+#         namedtuple
+#     """
+#     factors_res = namedtuple(
+#         'factor_res',
+#         'factor_data,quantile_returns,quantile_cum_returns,ic_info_table')
+#     k = cat_tuple[0]
+#     factor_cols = list(cat_tuple[1])
+#     sel_idx = categories_df.query(k).index
+
+#     test_factor = factors_df.loc[sel_idx, factor_cols]
+#     test_factor['复合因子'] = test_factor.mean(axis=1)
+#     factor_data = {}
+#     quantile_returns = {}
+#     quantile_cum_returns = {}
+#     info_dic = {}
+
+#     for name, ser in test_factor.items():
+
+#         gfr = analyze_factor_res(ser.dropna(), 0.25)
+#         gfr.get_calc(pricing)
+
+#         ic_info = gfr.calc_ic(gfr.factors_frame)
+#         cols = get_factor_columns(gfr.factors_frame.columns)
+
+#         quantile_mean_ret = gfr.factors_frame.groupby(
+#             'factor_quantile')[cols].mean()
+#         ic_info['mean_ret'] = quantile_mean_ret
+#         info_dic[name] = ic_info
+
+#         factor_data[name] = gfr.factors_frame
+#         quantile_returns[name] = gfr.group_returns
+#         quantile_cum_returns[name] = gfr.group_cum_returns
+
+#     quantile_info = pd.concat(info_dic)
+
+#     return factors_res(factor_data, quantile_returns, quantile_cum_returns,
+#                        quantile_info)
