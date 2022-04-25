@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-25 20:24:46
+LastEditTime: 2022-04-25 22:36:15
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -410,7 +410,11 @@ def add_group(factors: pd.DataFrame,
         direction = [direction] * len(ind_name)
 
         direction_dic = dict(zip(ind_name, direction))
+    
+    if isinstance(direction, dict):
 
+        direction_dic = direction
+        
     dfs: List = []
     for name, des in direction_dic.items():
 
