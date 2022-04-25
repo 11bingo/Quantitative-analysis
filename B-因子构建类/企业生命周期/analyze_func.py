@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-22 13:25:26
+LastEditTime: 2022-04-25 11:13:31
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -22,11 +22,13 @@ def plotting_dichotomy_res(res_nametuple: namedtuple):
     cols1 = 'IC Std.,Risk-Adjusted IC,t-stat(IC),p-value(IC),IC Skew,IC Kurtosis'.split(
         ',')
 
-    style_df = (res_nametuple.ic_info_table.style.format(
-        '{:.2%}', subset=cols).format('{:.4f}', subset=cols1))
+    ic_frame = res_nametuple.ic_info_table
+    style_df = (ic_frame.style.format('{:.2%}',
+                                      subset=cols).format('{:.4f}',
+                                                          subset=cols1))
 
     print_table(style_df)
-    size = style_df.shape[1]
+    size = ic_frame.shape[1]
 
     if size % 2 == 0:
         rows = size // 2
