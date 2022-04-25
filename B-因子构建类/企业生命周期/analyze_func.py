@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 16:32:18
+LastEditTime: 2022-04-25 16:54:35
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -118,6 +118,7 @@ class analyze_factor_res(object):
     def calc_ic(self) -> pd.DataFrame:
 
         ic_frame = calc_group_ic(self.factors, self.group_factor)
+        return ic_frame
 
 
 """生成结果"""
@@ -198,7 +199,7 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
     cat_tuple = categories_dic['cat_tuple']
     ind_name = categories_dic.get('ind_name', None)
     direction = categories_dic.get('direction', 'ascending')
-    group_num = categories_dic.get('group_num', None)
+    group_num = categories_dic.get('group_num', 5)
 
     # 获取查询及所需因子名称
     q, factor_cols = cat_tuple
@@ -215,8 +216,10 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
     # 计算ic
     ic_df = afr.calc_ic()
 
-    ic_info_table = ic_df.groupby(level='factor_name').apply(
-        lambda x: get_information_table(x.dropna()).T)
+    # ic_info_table = ic_df.groupby(level='factor_name').apply(
+    #     lambda x: get_information_table(x.dropna()).T)
+    ic_info_table = ic_df.groupby(
+        level='factor_name').apply(lambda x: get_information_table(x.dropna()))
 
     ic_info_table['mean_ret'] = afr.group_returns.groupby(
         level='factor_name').mean().stack()
