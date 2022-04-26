@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-25 22:37:31
+LastEditTime: 2022-04-26 10:40:51
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -28,8 +28,9 @@ from scipy import stats
 from collections import defaultdict
 
 import warnings
+
 warnings.filterwarnings("ignore")
-    
+
 __all__ = ['quadrant_dic', 'dichotomy_dic']
 """划分象限及高低端"""
 
@@ -410,7 +411,7 @@ def add_group(factors: pd.DataFrame,
         direction = [direction] * len(ind_name)
 
         direction = dict(zip(ind_name, direction))
-    
+
     dfs: List = []
     for name, des in direction.items():
 

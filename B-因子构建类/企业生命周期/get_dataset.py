@@ -1,7 +1,7 @@
 '''
 Author: Hugo
 Date: 2022-04-18 17:03:51
-LastEditTime: 2022-04-25 21:46:55
+LastEditTime: 2022-04-26 13:21:37
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -10,7 +10,6 @@ import sys
 
 sys.path.append('/home/jquser/')
 from typing import (List, Tuple, Dict, Callable, Union)
-from jqdata import *
 import pandas as pd
 import numpy as np
 
@@ -25,7 +24,10 @@ End = '2022-02-28'
 Last_date = '2022-03-31'
 
 
-def get_data(method:Union[str,List]='ALL',start:str=Begin,end:str=End,last_date:str=Last_date):
+def get_data(method: Union[str, List] = 'ALL',
+             start: str = Begin,
+             end: str = End,
+             last_date: str = Last_date):
 
     dic = {
         'dichotomy': _dump_dichotomy,
@@ -33,27 +35,27 @@ def get_data(method:Union[str,List]='ALL',start:str=Begin,end:str=End,last_date:
         'factor': _dump_factor,
         'price': _dump_price
     }
-    
-    if isinstance(method,List):
-        
+
+    if isinstance(method, List):
+
         for m in method:
 
-            dic[m](start=start,end=end,last_date=last_date)
-        
-        return 
-    
+            dic[m](start=start, end=end, last_date=last_date)
+
+        return
+
     if method.upper() == 'ALL':
 
         for func in dic.values():
 
-            func(start=start,end=end,last_date=last_date)
+            func(start=start, end=end, last_date=last_date)
 
     else:
 
-        dic[method](start=start,end=end,last_date=last_date)
+        dic[method](start=start, end=end, last_date=last_date)
 
 
-def _dump_dichotomy(start:str=Begin,end:str=End,**kw):
+def _dump_dichotomy(start: str = Begin, end: str = End, **kw):
 
     print('数据获取(起始日:%s,结束日:%s' % (start, end))
     # 划分高低端象限
@@ -63,7 +65,7 @@ def _dump_dichotomy(start:str=Begin,end:str=End,**kw):
     print('高低端象限数据获取完毕!')
 
 
-def _dump_quadrant(start:str=Begin,end:str=End,**kw):
+def _dump_quadrant(start: str = Begin, end: str = End, **kw):
     # 划分四象限
     print('开始划分四象限...')
     quandrant_df = get_quadrant(start, end)
@@ -86,13 +88,13 @@ def _dump_factor(**kw):
         print('缺少依赖数据:quandrant_df.csv,请先行下载quandrant_df.csv!')
 
 
-def _dump_price(last_date=Last_date,**kw):
-    
+def _dump_price(last_date=Last_date, **kw):
+
     if os.path.exists(r'Data/factors_frame.csv'):
 
         factors_df = pd.read_csv(r'Data/factors_frame.csv',
-                                   index_col=[0,1],
-                                   parse_dates=True)
+                                 index_col=[0, 1],
+                                 parse_dates=True)
         print('开始获取收盘价数据...')
         pricing = get_pricing(factors_df, last_date)
         pricing.to_csv(r'Data/pricing.csv')
