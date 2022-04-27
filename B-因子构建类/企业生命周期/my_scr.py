@@ -1,22 +1,22 @@
 '''
 Author: Hugo
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-26 10:40:51
+LastEditTime: 2022-04-27 15:00:47
 LastEditors: Please set LastEditors
 Description: 
 '''
 import _imports
 from typing import (List, Tuple, Dict, Callable, Union)
 
-from Hugos_tools.Tdays import (Tdaysoffset, get_trade_period)
-from Hugos_tools.BuildStockPool import Filter_Stocks
+# from Hugos_tools.Tdays import (Tdaysoffset, get_trade_period)
+# from Hugos_tools.BuildStockPool import Filter_Stocks
 
-from my_factor import (quadrant, VolAvg, VolCV, RealizedSkewness, ILLIQ,
-                       Operatingprofit_FY1, BP_LR, EP_Fwd12M, Sales2EV,
-                       Gross_profit_margin_chg, Netprofit_chg)
+# from my_factor import (quadrant, VolAvg, VolCV, RealizedSkewness, ILLIQ,
+#                        Operatingprofit_FY1, BP_LR, EP_Fwd12M, Sales2EV,
+#                        Gross_profit_margin_chg, Netprofit_chg)
 
-from jqfactor import calc_factors
-from jqdata import *
+# from jqfactor import calc_factors
+# from jqdata import *
 
 from tqdm import tqdm_notebook
 
