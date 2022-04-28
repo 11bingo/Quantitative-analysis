@@ -1,7 +1,7 @@
 '''
 Author: shen.lan123@gmail.com
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-28 14:18:54
+LastEditTime: 2022-04-28 22:09:54
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -9,9 +9,9 @@ import functools
 import alphalens as al
 import pandas as pd
 import empyrical as ep
-
+from composition_factor import compute_forward_returns
 from my_scr import (calc_group_ic, add_group, get_group_return,
-                    get_information_table)
+                     get_information_table)
 
 from typing import (List, Tuple, Dict, Callable, Union)
 from collections import namedtuple
@@ -93,7 +93,7 @@ class analyze_factor_res(object):
             quantiles (int, optional): group_num (int, optional): 当为大于等于2的整数时,对股票平均分组;当为(0,0.5)之间的浮点数,
                                 对股票分为3组,前group_num%为G01,后group_num%为G02,中间为G03. Defaults to 5.
         """
-        next_returns: pd.DataFrame = al.utils.compute_forward_returns(
+        next_returns: pd.DataFrame = compute_forward_returns(
             pricing, (1, ))
 
         # 分组

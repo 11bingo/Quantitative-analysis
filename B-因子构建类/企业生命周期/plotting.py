@@ -1,7 +1,7 @@
 '''
 Author: your name
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 16:26:39
+LastEditTime: 2022-04-28 22:15:13
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -59,7 +59,7 @@ def plotting_dichotomy_res(res_nametuple: namedtuple):
     cols = 'IC Mean,mean_ret'.split(',')
     cols1 = 'IC Std.,Risk-Adjusted IC,t-stat(IC),p-value(IC),IC Skew,IC Kurtosis'.split(
         ',')
-
+    # ICtable
     ic_frame = res_nametuple.ic_info_table
     style_df = (ic_frame.style.format('{:.2%}',
                                       subset=cols).format('{:.4f}',
@@ -83,7 +83,7 @@ def plotting_dichotomy_res(res_nametuple: namedtuple):
 
     plt.show()
     gf.close()
-
+    # quantile_cum_returns
     gf = GridFigure(rows=rows, cols=2, figsize=(18, rows * 5))
     for name, ser in res_nametuple.quantile_cum_returns.groupby(
             level='factor_name'):
