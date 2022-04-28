@@ -1,7 +1,7 @@
 '''
-Author: your name
+Author: shen.lan123@gmail.com
 Date: 2022-04-27 22:54:24
-LastEditTime: 2022-04-27 22:54:25
+LastEditTime: 2022-04-28 15:35:55
 LastEditors: Please set LastEditors
 Description: 用于因子合成
 
@@ -12,7 +12,7 @@ Description: 用于因子合成
 现有方法：
 1. fac_eqwt 等权法
 2. fac_ret_half 历史因子收益率（半衰）加权法
-3. fac_ic_half 历史因子 IC（半衰）加权法
+3. fac_ic_half 历史因子 IC(半衰)加权法
 4. fac_maxicir_samp 最大化 IC_IR 加权法 样本协方差
     fac_maxicir  Ledoit压缩估计方法计算协方差
 5. fac_maxic 最大化IC加权法 Ledoit压缩估计方法计算协方差
@@ -39,16 +39,16 @@ Description: 用于因子合成
 import numpy as np
 import pandas as pd
 
-import logging
+import warnings
 from scipy import stats
 from scipy import optimize
 import statsmodels.api as sm
 from sklearn.covariance import ledoit_wolf
+from my_scr import get_factor_columns
 from typing import (Tuple, List, Union, Dict, Callable)
-
-
-
 """utils"""
+
+
 def compute_forward_returns(prices, periods=(1, 5, 10), filter_zscore=None):
     """
     Finds the N period forward returns (as percent change) for each asset
@@ -91,6 +91,7 @@ def compute_forward_returns(prices, periods=(1, 5, 10), filter_zscore=None):
     forward_returns.index = forward_returns.index.rename(['date', 'asset'])
 
     return forward_returns
+
 
 def rolling_windows(a: Union[np.ndarray, pd.Series, pd.DataFrame],
                     window: int) -> np.ndarray:
@@ -143,16 +144,16 @@ def rolling_windows(a: Union[np.ndarray, pd.Series, pd.DataFrame],
     return windows
 
 
-def get_factor_columns(columns: pd.Index) -> List:
-    """获取因子名称
+# def get_factor_columns(columns: pd.Index) -> List:
+#     """获取因子名称
 
-    Args:
-        columns (pd.Index): _description_
+#     Args:
+#         columns (pd.Index): _description_
 
-    Returns:
-        List: _description_
-    """
-    return [col for col in columns if col not in ['next_return', 'next_ret']]
+#     Returns:
+#         List: _description_
+#     """
+#     return [col for col in columns if col not in ['next_return', 'next_ret']]
 
 
 def calc_information_coefficient(factors: pd.DataFrame) -> pd.DataFrame:
@@ -322,33 +323,18 @@ def _target_ledoit_func(w: np.array, ic: pd.DataFrame) -> float:
 """函数"""
 
 
-def fac_eqwt(factors: pd.DataFrame,
-             ind_direction: Union[str, Dict] = 'ascending') -> pd.DataFrame:
+def fac_eqwt(factors: pd.DataFrame) -> pd.DataFrame:
     """equal因子等权
 
     Args:
-        factors (pd.DataFrame): MultiIndex level0-date level1-code columns中需要含有next_ret
-        ind_direction (Union[str, Dict], optional): 设置所有因子的排序方向，'ascending'表示因子值越大分数越高，
-        'descending'表示因子值越小分数越高;当为dict时,可以分别对不同因子的排序方向进行设置. Defaults to 'ascending'.
+        factors (pd.DataFrame): MultiIndex level0-date level1-code columns中需要含有next_ret.
 
     Returns:
         pd.DataFrame: MultiIndex level0-date level1-code score
     """
     ind_name = get_factor_columns(factors.columns)
 
-    ase_dic = {'ascending': True, 'descending': False}
-    if isinstance(ind_direction, str):
-
-        ind_direction = [ind_direction] * len(ind_name)
-
-        ind_direction = dict(zip(ind_name, ind_direction))
-
-    rank = pd.concat(
-        (factors[col].groupby(level='date').rank(ascending=ase_dic[direction])
-         for col, direction in ind_direction.items()),
-        axis=1)
-
-    score = rank.mean(axis=1)
+    score = factors[ind_name].mean(axis=1)
 
     return score.to_frame('score')
 
@@ -390,8 +376,9 @@ def fac_ret_half(factors: pd.DataFrame,
     factors_ = factors[get_factor_columns(
         factors.columns)].transform(lambda x: x.shift(-1))
     score = factors_.mul(weight, axis=0).sum(axis=1)
+    idx = score.index.levels[0][window - 1:]
     score = score.to_frame('score')
-    return score
+    return score.loc[idx]
 
 
 def fac_ic_half(factors: pd.DataFrame,
@@ -431,8 +418,8 @@ def fac_ic_half(factors: pd.DataFrame,
 
     score = factors_.mul(weight).sum(axis=1)
     score = score.to_frame('score')
-
-    return score
+    idx = score.index.levels[0][window - 1:]
+    return score.loc[idx]
 
 
 def fac_maxicir_ledoit(factors: pd.DataFrame, window: int) -> pd.Series:
@@ -464,8 +451,8 @@ def fac_maxicir_ledoit(factors: pd.DataFrame, window: int) -> pd.Series:
 
     score = factors_.mul(weights).sum(axis=1)
     score = score.to_frame('score')
-
-    return score
+    idx = score.index.levels[0][window * 2 - 2:]
+    return score.loc[idx]
 
 
 def fac_maxicir_cov(factors: pd.DataFrame, window: int) -> pd.Series:
@@ -497,8 +484,8 @@ def fac_maxicir_cov(factors: pd.DataFrame, window: int) -> pd.Series:
 
     score = factors_.mul(weights).sum(axis=1)
     score = score.to_frame('score')
-
-    return score
+    idx = score.index.levels[0][window * 2 - 2:]
+    return score.loc[idx]
 
 
 def fac_maxic(factors: pd.DataFrame, window: int) -> pd.Series:
@@ -533,8 +520,83 @@ def fac_maxic(factors: pd.DataFrame, window: int) -> pd.Series:
 
     score = factors_.mul(weights).sum(axis=1)
     score = score.to_frame('score')
+    idx = score.index.levels[0][window * 2 - 2:]
+    return score.loc[idx]
 
+
+def factor_score_indicators(factors: pd.DataFrame,
+                            score_method: str,
+                            direction: Union[str, Dict] = 'ascending',
+                            window: int = 5) -> pd.DataFrame:
+    """打分法中：多因子组合分析与单因子分析主要多出了以下两个过程：
+        因子选择的过程：静态选择和动态选择
+
+        单因子得分到多因子组合得分的过程，这个过程涉及到了各单因子得分该如何加总的问题
+
+        主要的组合得分计算有以下几种方法：
+
+        等权法：该方法对所有因子同等看待，不论其有效性的优劣
+
+        IC加权:根据IC均值的大小决定因子的权重,IC高的因子,权重就大,IC的均值为滚动计算
+
+        ICIR加权:根据因子ICIR的大小决定因子的权重,ICIR越大,权重越大,ICIR的值为滚动计算
+
+    Args:
+        factors (pd.DataFrame): MultiIndex level0-date level1-code columns中需要含有next_ret
+        score_method (str): 打分方法，可选有'equal':因子等权，'ic':因子ic加权,'icir':因子icir加权
+        direction (Union[str, Dict], optional):置所有因子的排序方向，
+        'ascending'表示因子值越大分数越高，'descending'表示因子值越小分数越高;
+        当为dict时,可以分别对不同因子的排序方向进行设置. Defaults to 'ascending'.
+        window (int, optional): ic或icir打分法时ic计算均值及标准差的数据量. Defaults to 5.
+
+    Returns:
+        pd.DataFrame: MultiIndex level0-date level1-code score
+    """
+
+    score_method_func = {
+        'equal': fac_eqwt,
+        'ret_half': fac_ret_half,
+        'ic_half': fac_ic_half,
+        'maxicir_ledoit': fac_maxicir_ledoit,
+        'maxicir_cov': fac_maxicir_cov,
+        'maxic': fac_maxic
+    }
+
+    rank = get_factor_rank(factors, direction)
+    score = score_method_func[score_method](rank, window)
+    score['next_ret'] = rank['next_ret']
     return score
 
 
+def get_factor_rank(factors: pd.DataFrame,
+                    direction: Union[str, Dict] = 'ascending') -> pd.DataFrame:
+    """对因子进行排序
 
+    Args:
+        factors (pd.DataFrame): MultiIndex level0-date level1-code columns中需要含有next_ret
+        direction (Union[str, Dict], optional):置所有因子的排序方向，
+        'ascending'表示因子值越大分数越高，'descending'表示因子值越小分数越高;
+        当为dict时,可以分别对不同因子的排序方向进行设置. Defaults to 'ascending'. Defaults to 'ascending'.
+
+    Returns:
+        pd.DataFrame: MultiIndex level0-date level1-code columns-factors_name及next_ret value-ranke
+    """
+    asc_dic = {"ascending": True, 'descending': False}
+    ind_name = get_factor_columns(factors)
+    next_ret = factors['next_ret']
+    factors_ = factors[ind_name].copy()
+
+    if isinstance(direction, str):
+
+        direction = [direction] * len(ind_name)
+
+        direction = dict(zip(ind_name, direction))
+
+    rank = pd.concat((factors.groupby(level='date')[col].transform(
+        lambda x: x.rank(ascending=asc_dic[v], pct=True))
+                      for col, v in direction.items()),
+                     axis=1)
+
+    rank['next_ret'] = next_ret
+
+    return rank

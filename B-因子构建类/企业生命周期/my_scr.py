@@ -1,7 +1,7 @@
 '''
-Author: Hugo
+Author: shen.lan123@gmail.com
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-27 15:00:47
+LastEditTime: 2022-04-28 16:46:56
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -359,15 +359,16 @@ def get_group_return(df: pd.DataFrame, cols: List = None) -> pd.DataFrame:
     """计算分组收益率
 
     Args:
-        df (pd.DataFrame): MultiIndex level0-date level1-code
+        df (pd.DataFrame): MultiIndex level0-date level1-code 
         cols (List, optional): 需要计算的因子. Defaults to None.
 
     Returns:
         pd.DataFrame
     """
     if cols is None:
-        cols = get_factor_columns(df)
-
+        cols = get_factor_columns(df.columns)
+    if isinstance(cols, str):
+        cols = [cols]
     dic = defaultdict(pd.DataFrame)
     for col in cols:
 
@@ -420,10 +421,10 @@ def add_group(factors: pd.DataFrame,
         if des == 'descending':
             labels_dic = dict(zip(labels, labels[::-1]))
 
-        factor = factors[[name]].rename(columns={name: "factor"})
-        rank_ser: pd.Series = al.utils.quantize_factor(factor.dropna(),
-                                                       group_num,
-                                                       no_raise=True)
+        rank_ser: pd.Series = factors.groupby(
+            level='date')[name].transform(lambda x: pd.qcut(
+                x.dropna(), group_num, duplicates='drop', labels=False)) + 1
+
         rank_ser.name = name
         try:
             labels_dic

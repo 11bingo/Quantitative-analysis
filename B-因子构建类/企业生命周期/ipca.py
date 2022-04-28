@@ -1,7 +1,7 @@
 '''
-Author: your name
+Author: shen.lan123@gmail.com
 Date: 2022-04-27 23:07:26
-LastEditTime: 2022-04-27 23:07:26
+LastEditTime: 2022-04-28 14:19:10
 LastEditors: Please set LastEditors
 Description: 
 This is a Python implementation of the Instrumtented Principal Components Analysis framework by Kelly, Pruitt, Su (2017).
@@ -19,6 +19,7 @@ import scipy as sp
 import progressbar
 import warnings
 import time
+
 
 class InstrumentedPCA(BaseEstimator):
     """
@@ -50,9 +51,14 @@ class InstrumentedPCA(BaseEstimator):
     backend : str
         label for Joblib backend used for F step in ALS
     """
-
-    def __init__(self, n_factors=1, intercept=False, max_iter=10000,
-                 iter_tol=10e-6, alpha=0., l1_ratio=1., n_jobs=1,
+    def __init__(self,
+                 n_factors=1,
+                 intercept=False,
+                 max_iter=10000,
+                 iter_tol=10e-6,
+                 alpha=0.,
+                 l1_ratio=1.,
+                 n_jobs=1,
                  backend="loky"):
 
         # paranoid parameter checking to make it easier for users to know when
@@ -75,9 +81,16 @@ class InstrumentedPCA(BaseEstimator):
             if k != 'self':
                 setattr(self, k, v)
 
-
-    def fit(self, X, y, indices=None, PSF=None, Gamma=None,
-            Factors=None, data_type="portfolio", label_ind=False, **kwargs):
+    def fit(self,
+            X,
+            y,
+            indices=None,
+            PSF=None,
+            Gamma=None,
+            Factors=None,
+            data_type="portfolio",
+            label_ind=False,
+            **kwargs):
         """
         Fits the regressor to the data using an alternating least squares
         scheme.
@@ -196,17 +209,23 @@ class InstrumentedPCA(BaseEstimator):
         self.metad = metad
 
         # Run IPCA
-        Gamma, Factors = self._fit_ipca(X=X, y=y, indices=indices, Q=Q,
-                                        W=W, val_obs=val_obs, PSF=PSF,
-                                        Gamma=Gamma, Factors=Factors,
-                                        data_type=data_type, **kwargs)
+        Gamma, Factors = self._fit_ipca(X=X,
+                                        y=y,
+                                        indices=indices,
+                                        Q=Q,
+                                        W=W,
+                                        val_obs=val_obs,
+                                        PSF=PSF,
+                                        Gamma=Gamma,
+                                        Factors=Factors,
+                                        data_type=data_type,
+                                        **kwargs)
 
         # Store estimates
         if self.PSFcase:
             date_ln = len(metad["dates"])
             if self.intercept and self.has_PSF:
-                PSF = np.concatenate((PSF, np.ones((1, date_ln))),
-                                     axis=0)
+                PSF = np.concatenate((PSF, np.ones((1, date_ln))), axis=0)
             elif self.intercept:
                 PSF = np.ones((1, date_ln))
             if Factors is not None:
@@ -217,7 +236,6 @@ class InstrumentedPCA(BaseEstimator):
         self.Gamma, self.Factors = Gamma, Factors
 
         return self
-
 
     def get_factors(self, label_ind=False):
         """returns a tuple containing Gamma and Factors
@@ -239,10 +257,17 @@ class InstrumentedPCA(BaseEstimator):
 
         return Gamma, Factors
 
-
-    def fit_path(self, X, y, indices=None, PSF=None, alpha_l=None,
-                 n_splits=10, split_method=GroupKFold, n_jobs=1,
-                 backend="loky", **kwargs):
+    def fit_path(self,
+                 X,
+                 y,
+                 indices=None,
+                 PSF=None,
+                 alpha_l=None,
+                 n_splits=10,
+                 split_method=GroupKFold,
+                 n_jobs=1,
+                 backend="loky",
+                 **kwargs):
         """Fit a path of elastic net fits for various regularizing constants
         Parameters
         ----------
@@ -304,24 +329,42 @@ class InstrumentedPCA(BaseEstimator):
         # run cross-validation
         if n_jobs > 1:
             cvmse = Parallel(n_jobs=n_jobs, backend=backend)(
-                        delayed(_fit_cv)(
-                        self, X, y, indices, PSF, n_splits, split_method,
-                        alpha, data_type=data_type, **kwargs)
-                        for alpha in alpha_l)
+                delayed(_fit_cv)(self,
+                                 X,
+                                 y,
+                                 indices,
+                                 PSF,
+                                 n_splits,
+                                 split_method,
+                                 alpha,
+                                 data_type=data_type,
+                                 **kwargs) for alpha in alpha_l)
         else:
-            cvmse = [_fit_cv(self, X, y, indices, PSF, n_splits,
-                             split_method, alpha, data_type=data_type,
-                             **kwargs)
-                     for alpha in alpha_l]
+            cvmse = [
+                _fit_cv(self,
+                        X,
+                        y,
+                        indices,
+                        PSF,
+                        n_splits,
+                        split_method,
+                        alpha,
+                        data_type=data_type,
+                        **kwargs) for alpha in alpha_l
+            ]
 
         cvmse = np.stack(cvmse)
-        cvmse = np.hstack((alpha_l[:,None], cvmse))
+        cvmse = np.hstack((alpha_l[:, None], cvmse))
 
         return cvmse
 
-
-    def predict(self, X=None, indices=None, W=None, mean_factor=False,
-                data_type="panel", label_ind=False):
+    def predict(self,
+                X=None,
+                indices=None,
+                W=None,
+                mean_factor=False,
+                data_type="panel",
+                label_ind=False):
         """wrapper around different data type predict methods
         Parameters
         ----------
@@ -412,14 +455,14 @@ class InstrumentedPCA(BaseEstimator):
             pred = self.predict_portfolio(W, L, T, mean_factor)
 
             if label_ind:
-                pred = pd.DataFrame(pred, index=metad["chars"],
+                pred = pd.DataFrame(pred,
+                                    index=metad["chars"],
                                     columns=metad["dates"])
 
         else:
             raise ValueError("Unsupported data_type: %s" % data_type)
 
         return pred
-
 
     def predict_panel(self, X, indices, T, mean_factor=False):
         """
@@ -466,7 +509,6 @@ class InstrumentedPCA(BaseEstimator):
                     .dot(self.Factors[:, t]))
         return ypred
 
-
     def predict_portfolio(self, W, L, T, mean_factor=False):
         """
         Predicts fitted values for a previously fitted regressor + portfolios
@@ -503,16 +545,19 @@ class InstrumentedPCA(BaseEstimator):
             if mean_factor:
                 qpred = W[:, :, t].dot(self.Gamma).dot(mean_Factors)
                 qpred = np.squeeze(qpred)
-                Qpred[:,t] = qpred
+                Qpred[:, t] = qpred
             else:
                 qpred = W[:, :, t].dot(self.Gamma)\
                     .dot(self.Factors[:, t])
-                Qpred[:,t] = qpred
+                Qpred[:, t] = qpred
 
         return Qpred
 
-
-    def score(self, X, y=None, indices=None, mean_factor=False,
+    def score(self,
+              X,
+              y=None,
+              indices=None,
+              mean_factor=False,
               data_type="panel"):
         """generate R^2
         Parameters
@@ -565,7 +610,8 @@ class InstrumentedPCA(BaseEstimator):
             if y is None:
                 y = self.y
 
-            yhat = self.predict(X=X, indices=indices,
+            yhat = self.predict(X=X,
+                                indices=indices,
                                 mean_factor=mean_factor,
                                 data_type="panel")
 
@@ -578,13 +624,13 @@ class InstrumentedPCA(BaseEstimator):
                 y = self.y
             Q, W, val_obs = _build_portfolio(X, y, indices, metad)
 
-            Qhat = self.predict(W=W, mean_factor=mean_factor,
+            Qhat = self.predict(W=W,
+                                mean_factor=mean_factor,
                                 data_type="portfolio")
             return r2_score(Q, Qhat)
 
         else:
             return ValueError("Unsupported data_type: %s" % data_type)
-
 
     def BS_Walpha(self, ndraws=1000, n_jobs=1, backend='loky'):
         """
@@ -628,14 +674,14 @@ class InstrumentedPCA(BaseEstimator):
                 .dot(self.Factors[:, t_i])
 
         print("Starting Bootstrap...")
-        Walpha_b = Parallel(n_jobs=n_jobs, backend=backend, verbose=10)(
-            delayed(_BS_Walpha_sub)(self, n, d) for n in range(ndraws))
+        Walpha_b = Parallel(n_jobs=n_jobs, backend=backend,
+                            verbose=10)(delayed(_BS_Walpha_sub)(self, n, d)
+                                        for n in range(ndraws))
         print("Done!")
 
         # print(Walpha_b, Walpha)
-        pval = np.sum(Walpha_b > Walpha)/ndraws
+        pval = np.sum(Walpha_b > Walpha) / ndraws
         return pval
-
 
     def BS_Wbeta(self, l, ndraws=1000, n_jobs=1, backend='loky'):
         """
@@ -682,14 +728,14 @@ class InstrumentedPCA(BaseEstimator):
                 .dot(self.Factors[:, t_i])
 
         print("Starting Bootstrap...")
-        Wbeta_l_b = Parallel(n_jobs=n_jobs, backend=backend, verbose=10)(
-            delayed(_BS_Wbeta_sub)(self, n, d, l) for n in range(ndraws))
+        Wbeta_l_b = Parallel(n_jobs=n_jobs, backend=backend,
+                             verbose=10)(delayed(_BS_Wbeta_sub)(self, n, d, l)
+                                         for n in range(ndraws))
         print("Done!")
 
-        pval = np.sum(Wbeta_l_b > Wbeta_l)/ndraws
+        pval = np.sum(Wbeta_l_b > Wbeta_l) / ndraws
 
         return pval
-
 
     def BS_Wdelta(self, ndraws=1000, n_jobs=1, backend='loky'):
         """
@@ -724,7 +770,6 @@ class InstrumentedPCA(BaseEstimator):
         if K_PSF > 1:
             raise ValueError('Not implemented for more than one PSF yet.')
 
-
         # fail if model isn't estimated
         if not hasattr(self, "Q"):
             raise ValueError("Bootstrap can only be run on fitted model.")
@@ -740,15 +785,15 @@ class InstrumentedPCA(BaseEstimator):
                 .dot(self.Factors[:, t_i])
 
         print("Starting Bootstrap...")
-        Wdelta_b = Parallel(n_jobs=n_jobs, backend=backend, verbose=10)(
-            delayed(_BS_Wdelta_sub)(self, n, d) for n in range(ndraws))
+        Wdelta_b = Parallel(n_jobs=n_jobs, backend=backend,
+                            verbose=10)(delayed(_BS_Wdelta_sub)(self, n, d)
+                                        for n in range(ndraws))
         print("Done!")
 
         #print(Wdelta_b, Wdelta)
-        pval = np.sum(Wdelta_b > Wdelta)/ndraws
+        pval = np.sum(Wdelta_b > Wdelta) / ndraws
 
         return pval
-
 
     def predictOOS(self, X=None, y=None, indices=None, mean_factor=False):
         """
@@ -806,10 +851,19 @@ class InstrumentedPCA(BaseEstimator):
 
         return ypred
 
-
-    def _fit_ipca(self, X=None, y=None, indices=None, PSF=None, Q=None,
-                  W=None, val_obs=None, Gamma=None, Factors=None, quiet=False,
-                  data_type="portfolio", **kwargs):
+    def _fit_ipca(self,
+                  X=None,
+                  y=None,
+                  indices=None,
+                  PSF=None,
+                  Q=None,
+                  W=None,
+                  val_obs=None,
+                  Gamma=None,
+                  Factors=None,
+                  quiet=False,
+                  data_type="portfolio",
+                  **kwargs):
         """
         Fits the regressor to the data using alternating least squares
         Parameters
@@ -887,10 +941,12 @@ class InstrumentedPCA(BaseEstimator):
 
         iter = 0
 
-        while((iter <= self.max_iter) and (tol_current > self.iter_tol)):
+        while ((iter <= self.max_iter) and (tol_current > self.iter_tol)):
 
-            Gamma_New, Factor_New = ALS_fit(Gamma_Old, *ALS_inputs,
-                                            PSF=PSF, **kwargs)
+            Gamma_New, Factor_New = ALS_fit(Gamma_Old,
+                                            *ALS_inputs,
+                                            PSF=PSF,
+                                            **kwargs)
 
             if self.PSFcase:
                 tol_current = np.max(np.abs(Gamma_New - Gamma_Old))
@@ -910,7 +966,6 @@ class InstrumentedPCA(BaseEstimator):
             print('-- Convergence Reached --')
 
         return Gamma_New, Factor_New
-
 
     def _ALS_fit_portfolio(self, Gamma_Old, Q, W, val_obs, PSF=None, **kwargs):
         """Alternating least squares procedure to fit params
@@ -938,36 +993,34 @@ class InstrumentedPCA(BaseEstimator):
             # case with no observed factors
             if PSF is None:
                 if self.n_jobs > 1:
-                    F_New = Parallel(n_jobs=self.n_jobs,
-                                    backend=self.backend)(
-                                delayed(_Ft_fit_portfolio)(
-                                    Gamma_Old, W[:,:,t], Q[:,t])
-                                for t in range(T))
+                    F_New = Parallel(n_jobs=self.n_jobs, backend=self.backend)(
+                        delayed(_Ft_fit_portfolio)(Gamma_Old, W[:, :, t], Q[:,
+                                                                            t])
+                        for t in range(T))
                     F_New = np.stack(F_New, axis=1)
 
                 else:
                     F_New = np.full((K, T), np.nan)
                     for t in range(T):
-                        F_New[:,t] = _Ft_fit_portfolio(Gamma_Old, W[:,:,t],
-                                                       Q[:,t])
+                        F_New[:,
+                              t] = _Ft_fit_portfolio(Gamma_Old, W[:, :, t],
+                                                     Q[:, t])
 
             # observed factors+latent factors case
             else:
                 if self.n_jobs > 1:
                     F_New = Parallel(n_jobs=n_jobs, backend=backend)(
-                                delayed(_Ft_fit_PSF_portfolio)(
-                                    Gamma_Old, W[:,:,t], Q[:,t], PSF[:,t],
-                                    K, Ktilde)
-                                for t in range(T))
+                        delayed(_Ft_fit_PSF_portfolio)
+                        (Gamma_Old, W[:, :, t], Q[:, t], PSF[:, t], K, Ktilde)
+                        for t in range(T))
                     F_New = np.stack(F_New, axis=1)
 
                 else:
                     F_New = np.full((K, T), np.nan)
                     for t in range(T):
-                        F_New[:,t] = _Ft_fit_PSF_portfolio(Gamma_Old,
-                                                           W[:,:,t], Q[:,t],
-                                                           PSF[:,t], K,
-                                                           Ktilde)
+                        F_New[:, t] = _Ft_fit_PSF_portfolio(
+                            Gamma_Old, W[:, :, t], Q[:, t], PSF[:, t], K,
+                            Ktilde)
 
         else:
             F_New = None
@@ -993,7 +1046,10 @@ class InstrumentedPCA(BaseEstimator):
             F_New = np.multiply(F_New, sg)
 
             if PSF is not None:
-                Gamma_New[:, K:] = (np.identity(Gamma_New.shape[0]) - Gamma_New[:, :K].dot(Gamma_New[:, :K].T)).dot(Gamma_New[:, K:])
+                Gamma_New[:,
+                          K:] = (np.identity(Gamma_New.shape[0]) -
+                                 Gamma_New[:, :K].dot(Gamma_New[:, :K].T)).dot(
+                                     Gamma_New[:, K:])
                 F_New += Gamma_New[:, :K].T.dot(Gamma_New[:, K:]).dot(PSF)
 
                 sg = np.sign(np.mean(F_New, axis=1)).reshape((-1, 1))
@@ -1002,7 +1058,6 @@ class InstrumentedPCA(BaseEstimator):
                 F_New = np.multiply(F_New, sg)
 
         return Gamma_New, F_New
-
 
     def _ALS_fit_panel(self, Gamma_Old, X, y, indices, PSF=None, **kwargs):
         """Alternating least squares procedure to fit params
@@ -1025,7 +1080,7 @@ class InstrumentedPCA(BaseEstimator):
             K = Ktilde - K_PSF
 
         # prep T-ind for iteration
-        Tind = [np.where(indices[:,1] == t)[0] for t in range(T)]
+        Tind = [np.where(indices[:, 1] == t)[0] for t in range(T)]
 
         # ALS Step 1
         if K > 0:
@@ -1033,35 +1088,33 @@ class InstrumentedPCA(BaseEstimator):
             # case with no observed factors
             if PSF is None:
                 if self.n_jobs > 1:
-                    F_New = Parallel(n_jobs=self.n_jobs,
-                                    backend=self.backend)(
-                                delayed(_Ft_fit_panel)(
-                                    Gamma_Old, X[tind,:], y[tind])
-                                for t, tind in enumerate(Tind))
+                    F_New = Parallel(n_jobs=self.n_jobs, backend=self.backend)(
+                        delayed(_Ft_fit_panel)(Gamma_Old, X[tind, :], y[tind])
+                        for t, tind in enumerate(Tind))
                     F_New = np.stack(F_New, axis=1)
 
                 else:
                     F_New = np.full((K, T), np.nan)
                     for t, tind in enumerate(Tind):
-                        F_New[:,t] = _Ft_fit_panel(Gamma_Old, X[tind,:],
-                                                   y[tind])
+                        F_New[:, t] = _Ft_fit_panel(Gamma_Old, X[tind, :],
+                                                    y[tind])
 
             # observed factors+latent factors case
             else:
                 if self.n_jobs > 1:
                     F_New = Parallel(n_jobs=n_jobs, backend=backend)(
-                                delayed(_Ft_fit_PSF_panel)(
-                                    Gamma_Old, X[tind,:], y[tind],
-                                    PSF[:,t], K, Ktilde)
-                                for t, tind in enumerate(Tind))
+                        delayed(_Ft_fit_PSF_panel)(Gamma_Old, X[
+                            tind, :], y[tind], PSF[:, t], K, Ktilde)
+                        for t, tind in enumerate(Tind))
                     F_New = np.stack(F_New, axis=1)
 
                 else:
                     F_New = np.full((K, T), np.nan)
                     for t, tind in enumerate(Tind):
-                        F_New[:,t] = _Ft_fit_PSF_panel(Gamma_Old, X[tind,:],
-                                                       y[tind], PSF[:,t],
-                                                       K, Ktilde)
+                        F_New[:,
+                              t] = _Ft_fit_PSF_panel(Gamma_Old, X[tind, :],
+                                                     y[tind], PSF[:, t], K,
+                                                     Ktilde)
 
         else:
             F_New = None
@@ -1087,7 +1140,10 @@ class InstrumentedPCA(BaseEstimator):
             F_New = np.multiply(F_New, sg)
 
             if PSF is not None:
-                Gamma_New[:, K:] = (np.identity(Gamma_New.shape[0]) - Gamma_New[:, :K].dot(Gamma_New[:, :K].T)).dot(Gamma_New[:, K:])
+                Gamma_New[:,
+                          K:] = (np.identity(Gamma_New.shape[0]) -
+                                 Gamma_New[:, :K].dot(Gamma_New[:, :K].T)).dot(
+                                     Gamma_New[:, K:])
                 F_New += Gamma_New[:, :K].T.dot(Gamma_New[:, K:]).dot(PSF)
 
                 sg = np.sign(np.mean(F_New, axis=1)).reshape((-1, 1))
@@ -1193,8 +1249,8 @@ def _prep_input(X, y=None, indices=None):
         indices = indices.to_frame().values
     ids = np.unique(indices[:, 0])
     dates = np.unique(indices[:, 1])
-    indices[:,0] = np.unique(indices[:,0], return_inverse=True)[1]
-    indices[:,1] = np.unique(indices[:,1], return_inverse=True)[1]
+    indices[:, 0] = np.unique(indices[:, 0], return_inverse=True)[1]
+    indices[:, 1] = np.unique(indices[:, 1], return_inverse=True)[1]
 
     # init data dimensions
     T = np.size(dates, axis=0)
@@ -1255,8 +1311,10 @@ def _build_portfolio(X, y, indices, metad):
     print('n_samples:', N, ', L:', L, ', T:', T)
 
     bar = progressbar.ProgressBar(maxval=T,
-                                  widgets=[progressbar.Bar('=', '[', ']'),
-                                           ' ', progressbar.Percentage()])
+                                  widgets=[
+                                      progressbar.Bar('=', '[', ']'), ' ',
+                                      progressbar.Percentage()
+                                  ])
     bar.start()
 
     # init portfolio outputs based on input type
@@ -1271,15 +1329,15 @@ def _build_portfolio(X, y, indices, metad):
         for t in range(T):
             ixt = (indices[:, 1] == t)
             val_obs[t] = np.sum(ixt)
-            W[:, :, t] = X[ixt, :].T.dot(X[ixt, :])/val_obs[t]
+            W[:, :, t] = X[ixt, :].T.dot(X[ixt, :]) / val_obs[t]
             bar.update(t)
 
     else:
         for t in range(T):
             ixt = (indices[:, 1] == t)
             val_obs[t] = np.sum(ixt)
-            Q[:, t] = X[ixt, :].T.dot(y[ixt])/val_obs[t]
-            W[:, :, t] = X[ixt, :].T.dot(X[ixt, :])/val_obs[t]
+            Q[:, t] = X[ixt, :].T.dot(y[ixt]) / val_obs[t]
+            W[:, :, t] = X[ixt, :].T.dot(X[ixt, :]) / val_obs[t]
             bar.update(t)
 
     bar.finish()
@@ -1300,9 +1358,9 @@ def _Ft_fit_portfolio(Gamma_Old, W_t, Q_t):
 def _Ft_fit_PSF_portfolio(Gamma_Old, W_t, Q_t, PSF_t, K, Ktilde):
     """helper func to parallelize F ALS fit with observed factors"""
 
-    m1 = Gamma_Old[:,:K].T.dot(W_t).dot(Gamma_Old[:,:K])
-    m2 = Gamma_Old[:,:K].T.dot(Q_t)
-    m2 -= Gamma_Old[:,:K].T.dot(W_t).dot(Gamma_Old[:,K:Ktilde]).dot(PSF_t)
+    m1 = Gamma_Old[:, :K].T.dot(W_t).dot(Gamma_Old[:, :K])
+    m2 = Gamma_Old[:, :K].T.dot(Q_t)
+    m2 -= Gamma_Old[:, :K].T.dot(W_t).dot(Gamma_Old[:, K:Ktilde]).dot(PSF_t)
 
     return np.squeeze(_numba_solve(m1, m2.reshape((-1, 1))))
 
@@ -1320,8 +1378,8 @@ def _Ft_fit_PSF_panel(Gamma_Old, X_t, y_t, PSF_t, K, Ktilde):
     """fits F_t using panel data with PSF"""
 
     exog_t = X_t.dot(Gamma_Old)
-    y_t_resid = y_t - exog_t[:,K:Ktilde].dot(PSF_t)
-    Ft = _numba_lstsq(exog_t[:,:K], y_t_resid)[0]
+    y_t_resid = y_t - exog_t[:, K:Ktilde].dot(PSF_t)
+    Ft = _numba_lstsq(exog_t[:, :K], y_t_resid)[0]
 
     return Ft
 
@@ -1329,8 +1387,8 @@ def _Ft_fit_PSF_panel(Gamma_Old, X_t, y_t, PSF_t, K, Ktilde):
 def _Gamma_fit_portfolio(F_New, Q, W, val_obs, PSF, L, K, Ktilde, T):
     """helper function for fitting gamma without panel"""
 
-    Numer = _numba_full((L*Ktilde, 1), 0.0)
-    Denom = _numba_full((L*Ktilde, L*Ktilde), 0.0)
+    Numer = _numba_full((L * Ktilde, 1), 0.0)
+    Denom = _numba_full((L * Ktilde, L * Ktilde), 0.0)
 
     # no observed factors
     if PSF is None:
@@ -1352,10 +1410,10 @@ def _Gamma_fit_portfolio(F_New, Q, W, val_obs, PSF, L, K, Ktilde, T):
                                  (F_New[:, t].reshape((-1, 1)),
                                  PSF[:, t].reshape((-1, 1)))))\
                                  * val_obs[t]
-            Denom_temp = np.vstack((F_New[:, t].reshape((-1, 1)),
-                                   PSF[:, t].reshape((-1, 1))))
-            Denom += _numba_kron(W[:, :, t], Denom_temp.dot(Denom_temp.T)
-                                 * val_obs[t])
+            Denom_temp = np.vstack((F_New[:, t].reshape(
+                (-1, 1)), PSF[:, t].reshape((-1, 1))))
+            Denom += _numba_kron(W[:, :, t],
+                                 Denom_temp.dot(Denom_temp.T) * val_obs[t])
 
     # only observed factors
     else:
@@ -1385,10 +1443,10 @@ def _Gamma_fit_panel(F_New, X, y, indices, PSF, L, Ktilde, alpha, l1_ratio,
             F = PSF
         else:
             F = np.vstack((F_New, PSF))
-    F = F[:,indices[:,1]]
+    F = F[:, indices[:, 1]]
 
     # interact factors and characteristics
-    ZkF = np.hstack([F[k,:,None] * X for k in range(Ktilde)])
+    ZkF = np.hstack([F[k, :, None] * X for k in range(Ktilde)])
 
     # elastic net fit
     if alpha:
@@ -1447,30 +1505,30 @@ def _fit_cv(model, X, y, indices, PSF, n_splits, split_method, alpha,
     mse_l = []
     split = split_method(n_splits=n_splits)
 
-    full_tind = np.unique(indices[:,1])
+    full_tind = np.unique(indices[:, 1])
 
-    for train, test in split.split(indices, groups=indices[:,0]):
+    for train, test in split.split(indices, groups=indices[:, 0]):
 
         # build partitioned model
-        train_X = X[train,:]
+        train_X = X[train, :]
         train_y = y[train]
-        train_indices = indices[train,:]
-        test_X = X[test,:]
+        train_indices = indices[train, :]
+        test_X = X[test, :]
         test_y = y[test]
-        test_indices = indices[test,:]
+        test_indices = indices[test, :]
         if PSF is None:
             train_PSF = None
         else:
-            train_tind = np.unique(train_indices[:,1])
+            train_tind = np.unique(train_indices[:, 1])
             train_tind = np.where(np.isin(full_tind, train_tind))[0]
-            train_PSF = PSF[:,train_tind]
+            train_PSF = PSF[:, train_tind]
 
         # init new training model
         params = model.get_params()
         params["alpha"] = alpha
         train_IPCA = InstrumentedPCA(**params)
-        train_IPCA = train_IPCA.fit(train_X, train_y, train_indices,
-                                    train_PSF, **kwargs)
+        train_IPCA = train_IPCA.fit(train_X, train_y, train_indices, train_PSF,
+                                    **kwargs)
 
         # get MSE
         test_pred = train_IPCA.predict(test_X, test_indices, mean_factor=True)
@@ -1492,18 +1550,19 @@ def _BS_Walpha_sub(model, n, d):
         try:
             for t in range(T):
                 d_temp = np.random.standard_t(5)
-                d_temp *= d[:,np.random.randint(0,high=T)]
+                d_temp *= d[:, np.random.randint(0, high=T)]
                 Q_b[:, t] = model.W[:, :, t].dot(model.Gamma[:, :-1])\
                     .dot(model.Factors[:-1, t]) + d_temp
-            Gamma, Factors = model._fit_ipca(Q=Q_b, W=model.W,
+            Gamma, Factors = model._fit_ipca(Q=Q_b,
+                                             W=model.W,
                                              val_obs=model.val_obs,
-                                             PSF=model.PSF, quiet=True,
+                                             PSF=model.PSF,
+                                             quiet=True,
                                              data_type="portfolio")
         except np.linalg.LinAlgError:
             warnings.warn("Encountered singularity in bootstrap iteration.\
                            Observation discarded.")
             pass
-
 
     # Compute and store Walpha_b
     Walpha_b = Gamma[:, -1].T.dot(Gamma[:, -1])
@@ -1524,12 +1583,14 @@ def _BS_Wbeta_sub(model, n, d, l):
         try:
             for t in range(T):
                 d_temp = np.random.standard_t(5)
-                d_temp *= d[:,np.random.randint(0,high=T)]
+                d_temp *= d[:, np.random.randint(0, high=T)]
                 Q_b[:, t] = model.W[:, :, t].dot(Gamma_beta_l)\
                     .dot(model.Factors[:, t]) + d_temp
-            Gamma, Factors = model._fit_ipca(Q=Q_b, W=model.W,
+            Gamma, Factors = model._fit_ipca(Q=Q_b,
+                                             W=model.W,
                                              val_obs=model.val_obs,
-                                             PSF=model.PSF, quiet=True,
+                                             PSF=model.PSF,
+                                             quiet=True,
                                              data_type="portfolio")
 
         except np.linalg.LinAlgError:
@@ -1542,57 +1603,65 @@ def _BS_Wbeta_sub(model, n, d, l):
     Wbeta_l_b = np.trace(Wbeta_l_b)
     return Wbeta_l_b
 
+
 def _BS_Wdelta_sub(model, n, d):
-        L, T = model.metad["L"], model.metad["T"]
-        Q_b = np.full((L, T), np.nan)
-        np.random.seed(n)
+    L, T = model.metad["L"], model.metad["T"]
+    Q_b = np.full((L, T), np.nan)
+    np.random.seed(n)
 
-        #Modify Gamma_delta such that its last row for the PSF is zero
-        Gamma_delta = np.copy(model.Gamma)
-        Gamma_delta[:, -1] = 0
+    #Modify Gamma_delta such that its last row for the PSF is zero
+    Gamma_delta = np.copy(model.Gamma)
+    Gamma_delta[:, -1] = 0
 
-        Gamma = None
-        while Gamma is None:
-            try:
-                for t in range(T):
-                    d_temp = np.random.standard_t(5)
-                    d_temp *= d[:,np.random.randint(0,high=T)]
-                    Q_b[:, t] = model.W[:, :, t].dot(Gamma_delta)\
-                        .dot(model.Factors[:, t]) + d_temp
-                Gamma, Factors = model._fit_ipca(Q=Q_b, W=model.W,
-                                                 val_obs=model.val_obs,
-                                                 PSF=model.PSF, quiet=True,
-                                                 data_type="portfolio")
+    Gamma = None
+    while Gamma is None:
+        try:
+            for t in range(T):
+                d_temp = np.random.standard_t(5)
+                d_temp *= d[:, np.random.randint(0, high=T)]
+                Q_b[:, t] = model.W[:, :, t].dot(Gamma_delta)\
+                    .dot(model.Factors[:, t]) + d_temp
+            Gamma, Factors = model._fit_ipca(Q=Q_b,
+                                             W=model.W,
+                                             val_obs=model.val_obs,
+                                             PSF=model.PSF,
+                                             quiet=True,
+                                             data_type="portfolio")
 
-            except np.linalg.LinAlgError:
-                warnings.warn("Encountered singularity in bootstrap iteration.\
+        except np.linalg.LinAlgError:
+            warnings.warn("Encountered singularity in bootstrap iteration.\
                                Observation discarded.")
-                pass
+            pass
 
-        # Compute and store Wdelta_b
-        Wdelta_b = Gamma[:, -1].T.dot(Gamma[:, -1])
-        return Wdelta_b
+    # Compute and store Wdelta_b
+    Wdelta_b = Gamma[:, -1].T.dot(Gamma[:, -1])
+    return Wdelta_b
 
 
 @jit(nopython=True)
 def _numba_solve(m1, m2):
     return np.linalg.solve(np.ascontiguousarray(m1), np.ascontiguousarray(m2))
 
+
 @jit(nopython=True)
 def _numba_lstsq(m1, m2):
     return np.linalg.lstsq(np.ascontiguousarray(m1), np.ascontiguousarray(m2))
+
 
 @jit(nopython=True)
 def _numba_kron(m1, m2):
     return np.kron(np.ascontiguousarray(m1), np.ascontiguousarray(m2))
 
+
 @jit(nopython=True)
 def _numba_chol(m1):
     return np.linalg.cholesky(np.ascontiguousarray(m1))
 
+
 @jit(nopython=True)
 def _numba_svd(m1):
     return np.linalg.svd(np.ascontiguousarray(m1))
+
 
 @jit(nopython=True)
 def _numba_full(m1, m2):

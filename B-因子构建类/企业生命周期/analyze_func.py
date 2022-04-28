@@ -1,7 +1,7 @@
 '''
-Author: your name
+Author: shen.lan123@gmail.com
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-25 22:56:20
+LastEditTime: 2022-04-28 14:18:54
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -115,7 +115,6 @@ class analyze_factor_res(object):
         self.group_cum_returns = self.group_returns.groupby(
             level='factor_name').transform(lambda x: ep.cum_returns(x))
 
-        
     def calc_ic(self) -> pd.DataFrame:
 
         ic_frame = calc_group_ic(self.factors, self.group_factor)
