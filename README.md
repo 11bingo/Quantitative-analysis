@@ -1,8 +1,8 @@
 <!--
  * @Author: your name
  * @Date: 2022-04-17 00:54:11
- * @LastEditTime: 2022-04-18 19:50:06
- * @LastEditors: your name
+ * @LastEditTime: 2022-04-28 14:22:58
+ * @LastEditors: Please set LastEditors
  * @Description: 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  * @FilePath: \undefinedd:\WrokSpace\Quantitative-analysis\README.md
 -->
@@ -38,7 +38,8 @@
 13. [基于点位效率理论的个股趋势预测研究](https://www.joinquant.com/view/community/detail/f5d05b8233169adbbf44fb7522b2bf53)
 14. [技术指标形态识别](https://www.joinquant.com/view/community/detail/1636a1cadab86dc65c65355fe431380c)
     - 复现《Foundations of Technical Analysis》
-    - 申万行业日度跟踪(Technical Pattern Recognition)
+    - Technical Pattern Recognition文件：申万行业日度跟踪(Technical Pattern Recognition)
+
 
 **因子**
 
@@ -54,7 +55,7 @@
 10. [振幅因子的隐藏结构](https://www.joinquant.com/view/community/detail/a35fe484e3164893d4e48fafd3e08fd2)
 11. [高质量动量因子选股](https://www.joinquant.com/view/community/detail/f72c599da7d4ca155b25bff4b281e2e6)
 12. [APM因子改进模型](https://www.joinquant.com/view/community/detail/992fe40cc06c0bde50aa4aaf93fa042c)
-12. [高频价量相关性，意想不到的选股因子](https://www.joinquant.com/view/community/detail/539e74507dbf571f2be21d8fa4ebb8e6)
+13. [高频价量相关性，意想不到的选股因子](https://www.joinquant.com/view/community/detail/539e74507dbf571f2be21d8fa4ebb8e6)
 
 **量化价值**
 
