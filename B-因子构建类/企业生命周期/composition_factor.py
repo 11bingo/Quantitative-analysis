@@ -1,7 +1,7 @@
 '''
 Author: shen.lan123@gmail.com
 Date: 2022-04-27 22:54:24
-LastEditTime: 2022-04-28 22:10:14
+LastEditTime: 2022-04-29 13:32:59
 LastEditors: Please set LastEditors
 Description: 用于因子合成
 
@@ -527,7 +527,8 @@ def fac_maxic(factors: pd.DataFrame, window: int) -> pd.Series:
 def factor_score_indicators(factors: pd.DataFrame,
                             score_method: str,
                             direction: Union[str, Dict] = 'ascending',
-                            window: int = 5) -> pd.DataFrame:
+                            window: int = 5,
+                            is_rank: bool = True) -> pd.DataFrame:
     """打分法中：多因子组合分析与单因子分析主要多出了以下两个过程：
         因子选择的过程：静态选择和动态选择
 
@@ -548,7 +549,7 @@ def factor_score_indicators(factors: pd.DataFrame,
         'ascending'表示因子值越大分数越高，'descending'表示因子值越小分数越高;
         当为dict时,可以分别对不同因子的排序方向进行设置. Defaults to 'ascending'.
         window (int, optional): ic或icir打分法时ic计算均值及标准差的数据量. Defaults to 5.
-
+        is_rank (bool): 是否排序,False不排序,当为False时
     Returns:
         pd.DataFrame: MultiIndex level0-date level1-code score
     """
@@ -562,7 +563,10 @@ def factor_score_indicators(factors: pd.DataFrame,
         'maxic': fac_maxic
     }
 
-    rank = get_factor_rank(factors, direction)
+    if is_rank:
+        rank = get_factor_rank(factors, direction)
+    else:
+        rank = factors
     score = score_method_func[score_method](rank, window)
     score['next_ret'] = rank['next_ret']
     return score

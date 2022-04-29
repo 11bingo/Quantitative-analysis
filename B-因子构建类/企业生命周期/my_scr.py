@@ -1,7 +1,7 @@
 '''
 Author: shen.lan123@gmail.com
 Date: 2022-04-18 16:53:10
-LastEditTime: 2022-04-28 22:09:22
+LastEditTime: 2022-04-29 13:36:17
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -422,7 +422,7 @@ def add_group(factors: pd.DataFrame,
 
         rank_ser: pd.Series = factors.groupby(
             level='date')[name].transform(lambda x: pd.qcut(
-                x.dropna(), group_num, duplicates='drop', labels=False)) + 1
+                x, group_num, duplicates='drop', labels=False)) + 1
 
         rank_ser.name = name
         try:

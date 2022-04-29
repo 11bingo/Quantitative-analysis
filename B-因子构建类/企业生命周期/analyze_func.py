@@ -1,7 +1,7 @@
 '''
 Author: shen.lan123@gmail.com
 Date: 2022-04-22 13:21:17
-LastEditTime: 2022-04-28 22:09:54
+LastEditTime: 2022-04-29 14:16:29
 LastEditors: Please set LastEditors
 Description: 
 '''
@@ -11,8 +11,8 @@ import pandas as pd
 import empyrical as ep
 from composition_factor import compute_forward_returns
 from my_scr import (calc_group_ic, add_group, get_group_return,
-                     get_information_table)
-
+                    get_information_table)
+import composition_factor as comp_factor
 from typing import (List, Tuple, Dict, Callable, Union)
 from collections import namedtuple
 
@@ -93,8 +93,7 @@ class analyze_factor_res(object):
             quantiles (int, optional): group_num (int, optional): 当为大于等于2的整数时,对股票平均分组;当为(0,0.5)之间的浮点数,
                                 对股票分为3组,前group_num%为G01,后group_num%为G02,中间为G03. Defaults to 5.
         """
-        next_returns: pd.DataFrame = compute_forward_returns(
-            pricing, (1, ))
+        next_returns: pd.DataFrame = compute_forward_returns(pricing, (1, ))
 
         # 分组
         group_factor = add_group(self.factors,
@@ -153,30 +152,43 @@ def get_factor_res(dichotomy: pd.DataFrame, factors: pd.DataFrame,
     res = {}
 
     ind_name = kws.get('ind_name', None)
+    # k-与cat_type的key一致,v-direction
     direction = kws.get('direction', 'ascending')
     group_num = kws.get('group_num', 5)
+    comp_params = kws.get('comp_params', None)
 
     func = functools.partial(get_factor_res2namedtuple,
                              factor_df=factors,
                              pricing=pricing,
-                             categories_df=dichotomy)
+                             categories_df=dichotomy,
+                             comp_params=comp_params)
 
     for name, v in cat_type.items():
+
+        if isinstance(direction, dict):
+
+            des: dict = direction[name]
+
+        else:
+
+            des = direction
 
         res[name] = func(
             categories_dic={
                 'cat_tuple': v,
                 'ind_name': ind_name,
-                'direction': direction,
+                'direction': des,
                 'group_num': group_num
             })
 
     return res
 
 
-def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
+def get_factor_res2namedtuple(factor_df: pd.DataFrame,
+                              pricing: pd.DataFrame,
                               categories_df: pd.DataFrame,
-                              categories_dic: Dict) -> namedtuple:
+                              categories_dic: Dict,
+                              comp_params: Dict = None) -> namedtuple:
     """计算每个象限的因子收益情况
 
     Args:
@@ -188,7 +200,10 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
             2. ind_name同add_group
             3. group_num同add_group
             4. direction同add_group
-
+        comp_params (Dict):是否复合因子
+            1. method:因子复合的方法
+            2. window:计算IC均值的均值窗口
+            3. is_rank:是否排序再复合因子
     Returns:
         namedtuple
     """
@@ -206,8 +221,13 @@ def get_factor_res2namedtuple(factor_df: pd.DataFrame, pricing: pd.DataFrame,
 
     sel_idx = categories_df.query(q).index
     test_factor = factor_df.loc[sel_idx, factor_cols]
-    if len(factor_cols) > 1:
-        test_factor['复合因子'] = test_factor.mean(axis=1)
+    # 因子复合参数
+    if comp_params is not None:
+        comp_method = categories_dic['method']
+        ic_window = categories_dic['window']
+        is_rank = categories_dic.get('is_rank', True)
+        test_factor['复合因子'] = comp_factor.factor_score_indicators(
+            test_factor, comp_method, direction, ic_window, is_rank)
 
     afr = analyze_factor_res(test_factor,
                              ind_name=ind_name,
